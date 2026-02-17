@@ -1,6 +1,5 @@
 package com.example.mizukisync
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -32,6 +31,7 @@ class SongSearchActivity : AppCompatActivity() {
 
         btnSearch.setOnClickListener {
             val keyword = etSearch.text.toString().trim()
+            // 只要有字就搜，什么都不要管
             if (keyword.isNotEmpty()) {
                 search(keyword, rvSongs)
             }
@@ -46,6 +46,8 @@ class SongSearchActivity : AppCompatActivity() {
                     val list = response.body()!!
                     if (list.isEmpty()) Toast.makeText(this@SongSearchActivity, "无结果", Toast.LENGTH_SHORT).show()
                     rv.adapter = SongAdapter(list)
+                } else {
+                    Toast.makeText(this@SongSearchActivity, "失败: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
             }
             override fun onFailure(call: Call<List<SongResult>>, t: Throwable) {
@@ -74,22 +76,12 @@ class SongSearchActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val s = songs[position]
             holder.title.text = s.title
-            holder.artist.text = s.artist ?: "Unknown"
-            // 修复点：这里改成 s.id
-            holder.ids.text = "ID: ${s.id} [${s.source}]"
+            holder.artist.text = s.artist ?: ""
+            holder.ids.text = "ID: ${s.id}"
             holder.score.text = s.user_score
             holder.rate.text = s.rate_icon
             holder.level.text = s.level
-
-            Glide.with(this@SongSearchActivity)
-                .load(s.cover_url)
-                .transform(RoundedCorners(12))
-                .placeholder(R.mipmap.ic_launcher)
-                .into(holder.cover)
-
-            holder.root.setOnClickListener {
-                Toast.makeText(holder.root.context, "${s.title} ID:${s.id}", Toast.LENGTH_SHORT).show()
-            }
+            Glide.with(this@SongSearchActivity).load(s.cover_url).transform(RoundedCorners(12)).into(holder.cover)
         }
 
         override fun getItemCount() = songs.size

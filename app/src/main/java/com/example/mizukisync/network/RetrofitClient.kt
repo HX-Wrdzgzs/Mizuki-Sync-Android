@@ -1,34 +1,50 @@
 package com.example.mizukisync.network
 
-import android.annotation.SuppressLint
 import android.content.Context
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
-@SuppressLint("StaticFieldLeak") // 忽略 Context 泄漏警告，作为单例持有 Application Context 是安全的
 object RetrofitClient {
-    private const val BASE_URL = "https://api.mizuki.top/"
+
+    // 默认地址 (仅作保底)
+    private const val DEFAULT_URL = "http://10.0.2.2:8000"
+
     private var retrofit: Retrofit? = null
+    private var currentBaseUrl: String? = null
 
-    // 修改：你需要先调用 init 才能用
     fun getInstance(context: Context): ApiService {
-        if (retrofit == null) {
+        // 1. 从缓存读取用户设置的 IP
+        val prefs = context.getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE)
+        // 注意：这里必须保证 URL 以 / 结尾，Retrofit 强制要求
+        var baseUrl = prefs.getString("server_url", DEFAULT_URL) ?: DEFAULT_URL
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/"
+        }
 
-            // 1. 配置 SSL 证书锁定
-            val certificatePinner = CertificatePinner.Builder()
-                .add("api.mizuki.top", "sha256/HWRijKO9kd0zFhWZGFV1E+QAC9Zfit5UczDMM96Wihs=")
-                .build()
+        // 2. 如果地址变了，或者还没初始化，就重新构建 Retrofit
+        if (retrofit == null || baseUrl != currentBaseUrl) {
+            currentBaseUrl = baseUrl
 
-            // 2. 创建 Client，把 Application Context 传给拦截器
             val client = OkHttpClient.Builder()
-                .certificatePinner(certificatePinner)
-                .addInterceptor(AuthInterceptor(context.applicationContext))
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    val original = chain.request()
+                    val token = prefs.getString("access_token", null)
+
+                    val requestBuilder = original.newBuilder()
+                    if (!token.isNullOrEmpty()) {
+                        requestBuilder.header("Authorization", "Bearer $token")
+                    }
+                    val request = requestBuilder.build()
+                    chain.proceed(request)
+                }
                 .build()
 
             retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(baseUrl) // 使用动态读取的 IP
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()

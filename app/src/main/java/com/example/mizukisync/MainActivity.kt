@@ -1,6 +1,5 @@
 package com.example.mizukisync
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -29,7 +28,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 绑定 ID
+        // 绑定头部控件
         ivAvatar = findViewById(R.id.iv_avatar)
         ivBgPlate = findViewById(R.id.iv_bg_plate)
         tvUsername = findViewById(R.id.tv_username)
@@ -40,14 +39,23 @@ class MainActivity : AppCompatActivity() {
         tvClass = findViewById(R.id.tv_class)
         tvStar = findViewById(R.id.tv_star)
 
-        // 功能卡片
+        // --- 修复点：恢复文字和图标设置 ---
         setupCard(R.id.btn_song_search, "🎵", "乐曲搜索", "查询全曲库") {
             startActivity(Intent(this, SongSearchActivity::class.java))
         }
-        setupCard(R.id.btn_refresh, "🔄", "刷新API", "同步最新数据") { loadData() }
+        setupCard(R.id.btn_score_query, "📊", "成绩查询", "查看 B35/B15") {
+            Toast.makeText(this, "开发中...", Toast.LENGTH_SHORT).show()
+        }
+        setupCard(R.id.btn_bind_df, "🌊", "绑定水鱼", "同步开发者 Token") {
+            Toast.makeText(this, "后端已托管 Token", Toast.LENGTH_SHORT).show()
+        }
+        setupCard(R.id.btn_tools, "🧰", "工具箱", "常用小工具") {
+            Toast.makeText(this, "开发中...", Toast.LENGTH_SHORT).show()
+        }
+        setupCard(R.id.btn_refresh, "🔄", "刷新数据", "同步最新记录") {
+            loadData()
+        }
         setupCard(R.id.btn_logout_grid, "🚪", "退出登录", "清除缓存") {
-            getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE).edit().clear().apply()
-            startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
 
@@ -55,25 +63,30 @@ class MainActivity : AppCompatActivity() {
         loadData()
     }
 
-    private fun setupCard(viewId: Int, icon: String, title: String, sub: String, onClick: () -> Unit) {
+    // 修复后的 setupCard：必须接收标题和图标参数
+    private fun setupCard(viewId: Int, icon: String, title: String, subtitle: String, onClick: () -> Unit) {
         val card = findViewById<View>(viewId)
         if (card != null) {
-            card.findViewById<TextView>(R.id.tv_icon).text = icon
-            card.findViewById<TextView>(R.id.tv_title).text = title
-            card.findViewById<TextView>(R.id.tv_subtitle).text = sub
+            // 这里必须对应 item_grid_card.xml 里的 ID
+            card.findViewById<TextView>(R.id.tv_icon)?.text = icon
+            card.findViewById<TextView>(R.id.tv_title)?.text = title
+            card.findViewById<TextView>(R.id.tv_subtitle)?.text = subtitle
             card.setOnClickListener { onClick() }
         }
     }
 
     private fun loadData() {
+        Toast.makeText(this, "正在同步...", Toast.LENGTH_SHORT).show()
+
         RetrofitClient.getInstance(this).getProfile().enqueue(object : Callback<LoginResponse> {
             override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                 if (response.isSuccessful && response.body() != null) {
                     val user = response.body()!!
+
                     tvUsername.text = user.username
                     tvRating.text = user.maimai_rating.toString()
                     tvFriendCode.text = "ID: ${user.friend_code}"
-                    tvTrophy.text = user.trophy ?: "暂无称号"
+                    tvTrophy.text = user.trophy ?: "暂无"
                     tvDan.text = user.dan ?: "初学者"
                     tvClass.text = user.class_rank ?: "B1"
                     tvStar.text = "★×${user.star ?: 0}"
@@ -84,6 +97,9 @@ class MainActivity : AppCompatActivity() {
                     if (!user.plate_url.isNullOrEmpty()) {
                         Glide.with(this@MainActivity).load(user.plate_url).centerCrop().into(ivBgPlate)
                     }
+                    Toast.makeText(this@MainActivity, "同步成功", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "后端返回错误: ${response.code()}", Toast.LENGTH_SHORT).show()
                 }
             }
             override fun onFailure(call: Call<LoginResponse>, t: Throwable) {

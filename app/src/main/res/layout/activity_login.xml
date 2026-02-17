@@ -1,54 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:padding="32dp"
     android:gravity="center"
-    android:padding="30dp"
-    android:background="#FFF5F9">
+    android:background="@color/page_background">
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@mipmap/ic_launcher"
+        android:layout_marginBottom="24dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Mizuki Sync"
-        android:textColor="#E5459C"
-        android:textSize="32sp"
+        android:textSize="28sp"
         android:textStyle="bold"
+        android:textColor="@color/text_primary"
         android:layout_marginBottom="40dp"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="服务器地址 (CF Tunnel域名)"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_server_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="https://api.mizuki.top"
+            android:inputType="textUri"
+            android:textColor="@color/text_primary"/>
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/btn_get_lx_code"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="使用落雪 (LXNS) 登录"
-        android:backgroundTint="#E5459C"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:layout_marginBottom="20dp"/>
+        android:text="落雪账号登录"
+        android:backgroundTint="@color/purple_500"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        app:cornerRadius="12dp"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="———— 或 ————"
-        android:textColor="#999"
-        android:layout_marginBottom="20dp"/>
-
-    <EditText
-        android:id="@+id/et_token"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:hint="输入水鱼查分器 Token"
-        android:background="@android:color/white"
-        android:padding="10dp"
-        android:layout_marginBottom="10dp"/>
-
-    <Button
-        android:id="@+id/btn_login"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="使用水鱼 Token 登录"
-        android:backgroundTint="#888888"
-        android:textColor="#FFFFFF"/>
-
+        android:text="登录即代表同意用户协议"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:layout_marginTop="24dp"/>
 </LinearLayout>
