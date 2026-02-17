@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="30dp"
+    android:background="#FFF5F9">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mizuki Sync"
+        android:textColor="#E5459C"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="40dp"/>
+
+    <Button
+        android:id="@+id/btn_get_lx_code"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="使用落雪 (LXNS) 登录"
+        android:backgroundTint="#E5459C"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="———— 或 ————"
+        android:textColor="#999"
+        android:layout_marginBottom="20dp"/>
+
+    <EditText
+        android:id="@+id/et_token"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="输入水鱼查分器 Token"
+        android:background="@android:color/white"
+        android:padding="10dp"
+        android:layout_marginBottom="10dp"/>
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="使用水鱼 Token 登录"
+        android:backgroundTint="#888888"
+        android:textColor="#FFFFFF"/>
+
+</LinearLayout>
