@@ -8,30 +8,21 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // 默认地址 (仅作保底)
-    private const val DEFAULT_URL = "http://10.0.2.2:8000"
+    // !!! 核心修改：直接写死你的 CF Tunnel 域名 !!!
+    // 注意：必须以 / 结尾
+    private const val BASE_URL = "https://api.mizuki.top/"
 
     private var retrofit: Retrofit? = null
-    private var currentBaseUrl: String? = null
 
     fun getInstance(context: Context): ApiService {
-        // 1. 从缓存读取用户设置的 IP
-        val prefs = context.getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE)
-        // 注意：这里必须保证 URL 以 / 结尾，Retrofit 强制要求
-        var baseUrl = prefs.getString("server_url", DEFAULT_URL) ?: DEFAULT_URL
-        if (!baseUrl.endsWith("/")) {
-            baseUrl += "/"
-        }
-
-        // 2. 如果地址变了，或者还没初始化，就重新构建 Retrofit
-        if (retrofit == null || baseUrl != currentBaseUrl) {
-            currentBaseUrl = baseUrl
-
+        if (retrofit == null) {
             val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
+                // 自动带上 Token
                 .addInterceptor { chain ->
                     val original = chain.request()
+                    val prefs = context.getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE)
                     val token = prefs.getString("access_token", null)
 
                     val requestBuilder = original.newBuilder()
@@ -44,7 +35,7 @@ object RetrofitClient {
                 .build()
 
             retrofit = Retrofit.Builder()
-                .baseUrl(baseUrl) // 使用动态读取的 IP
+                .baseUrl(BASE_URL)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
