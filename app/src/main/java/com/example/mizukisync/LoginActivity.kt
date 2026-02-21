@@ -26,7 +26,6 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         findViewById<Button>(R.id.btn_get_lx_code).setOnClickListener {
-            // 直接跳转授权，不需要填任何东西
             startActivityForResult(Intent(this, WebViewActivity::class.java), REQUEST_CODE_LX)
         }
     }
@@ -49,9 +48,10 @@ class LoginActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!
 
-                    // 保存 Token
+                    // === 核心修改：同时保存 access_token 和 refresh_token ===
                     getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE).edit()
                         .putString("access_token", data.token)
+                        .putString("refresh_token", data.refresh_token)
                         .apply()
 
                     goToMain()

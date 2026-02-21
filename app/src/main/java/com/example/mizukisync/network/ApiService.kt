@@ -1,47 +1,24 @@
 package com.example.mizukisync.network
 
 import retrofit2.Call
-import retrofit2.http.*
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface ApiService {
-    @GET("/")
-    fun getServerStatus(): Call<Void>
-
-    @GET("/api/oauth/token")
+    // 1. 获取授权 (返回 AccessToken + RefreshToken)
+    @GET("api/oauth/token")
     fun loginWithLX(@Query("code") code: String): Call<LoginResponse>
 
-    @GET("/api/df/login")
-    fun loginWithDF(@Query("token") token: String): Call<LoginResponse>
-
-    @GET("/api/user/profile")
+    // 2. 获取数据 (如果 Token 过期，后端会返回 "登录过期")
+    @GET("api/user/profile")
     fun getProfile(): Call<LoginResponse>
 
-    @GET("/api/music/search")
+    // 3. 令牌续期 (用旧的 RefreshToken 换取全新 30 天的 Token 套餐)
+    @POST("api/oauth/refresh")
+    fun refreshToken(@Query("refresh_token") refreshToken: String): Call<LoginResponse>
+
+    // 4. 乐曲搜索 (补回这个接口，解决报错)
+    @GET("api/music/search")
     fun searchMusic(@Query("keyword") keyword: String): Call<List<SongResult>>
 }
-
-data class LoginResponse(
-    val token: String,
-    val username: String,
-    val maimai_rating: Int,
-    val friend_code: String,
-    val login_type: String,
-    val icon_url: String?,
-    val plate_url: String?,
-    val trophy: String?,
-    val dan: String?,
-    val class_rank: String?,
-    val star: Int?
-)
-
-data class SongResult(
-    val id: Int,
-    val title: String,
-    val artist: String?,
-    val cover_url: String,
-    val level: String,
-    val user_score: String,
-    val rate_icon: String,
-    val achievements: Double,
-    val source: String
-)
