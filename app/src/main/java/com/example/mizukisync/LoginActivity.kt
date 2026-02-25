@@ -16,8 +16,8 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 自动登录检查：如果已有 Token，直接跳过登录页
-        val prefs = getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE)
+        // 🌟 核心修复1：统一个名字，使用大写的 "MizukiPrefs"
+        val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
         if (prefs.getString("access_token", null) != null) {
             goToMain()
             return
@@ -48,8 +48,8 @@ class LoginActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!
 
-                    // === 核心修改：同时保存 access_token 和 refresh_token ===
-                    getSharedPreferences("mizuki_prefs", Context.MODE_PRIVATE).edit()
+                    // 🌟 核心修复2：统一个名字，使用大写的 "MizukiPrefs"
+                    getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit()
                         .putString("access_token", data.token)
                         .putString("refresh_token", data.refresh_token)
                         .apply()

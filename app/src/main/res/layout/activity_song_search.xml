@@ -1,40 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F7FA"
-    android:padding="16dp">
+    android:background="#F5F6FA"> <androidx.cardview.widget.CardView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginTop="24dp"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/shape_capsule"
-        android:padding="4dp"
-        android:layout_marginBottom="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@android:drawable/ic_menu_search"
+            app:tint="#9E9E9E"
+            android:contentDescription="@null"/>
 
         <EditText
-            android:id="@+id/et_search"
+            android:id="@+id/et_search_keyword"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
+            android:layout_marginStart="12dp"
             android:background="@null"
-            android:hint="输入曲名 / ID"
-            android:paddingStart="16dp"
-            android:textSize="14sp"/>
+            android:hint="输入歌名、罗马音或别名..."
+            android:textColor="#212121"
+            android:textColorHint="#9E9E9E"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:imeOptions="actionSearch"/>
 
-        <Button
-            android:id="@+id/btn_do_search"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="搜索"
-            android:backgroundTint="#448AFF"
-            android:textColor="#FFF"/>
+        <ImageView
+            android:id="@+id/btn_filter"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginStart="8dp"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            app:tint="#1976D2"
+            android:contentDescription="@null"/>
     </LinearLayout>
+</androidx.cardview.widget.CardView>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_songs"
+        android:id="@+id/rv_song_list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:paddingHorizontal="12dp"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp"/>
+
 </LinearLayout>

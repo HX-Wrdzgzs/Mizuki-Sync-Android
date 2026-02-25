@@ -9,143 +9,130 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners
-import com.example.mizukisync.network.*
-import retrofit2.*
+import com.example.mizukisync.network.UnsafeOkHttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var ivAvatar: ImageView
-    private lateinit var ivBgPlate: ImageView
-    private lateinit var ivFrame: ImageView
     private lateinit var tvUsername: TextView
-    private lateinit var tvRating: TextView
-    private lateinit var tvFriendCode: TextView
     private lateinit var tvTrophy: TextView
     private lateinit var tvDan: TextView
     private lateinit var tvClass: TextView
     private lateinit var tvStar: TextView
+    private lateinit var tvFriendCode: TextView
+    private lateinit var tvRating: TextView
+
+    // 隐藏的背景控件
+    private lateinit var ivBgPlate: ImageView
+    private lateinit var ivFrame: ImageView
+
+    // 懒加载网络客户端（专治黑屏）
+    private val client by lazy { UnsafeOkHttpClient.getClient() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         ivAvatar = findViewById(R.id.iv_avatar)
-        ivBgPlate = findViewById(R.id.iv_bg_plate)
-        ivFrame = findViewById(R.id.iv_frame)
         tvUsername = findViewById(R.id.tv_username)
-        tvRating = findViewById(R.id.tv_rating)
-        tvFriendCode = findViewById(R.id.tv_friend_code)
         tvTrophy = findViewById(R.id.tv_trophy)
         tvDan = findViewById(R.id.tv_dan)
         tvClass = findViewById(R.id.tv_class)
         tvStar = findViewById(R.id.tv_star)
+        tvFriendCode = findViewById(R.id.tv_friend_code)
+        tvRating = findViewById(R.id.tv_rating)
 
-        setupCard(R.id.btn_song_search, "🎵", "乐曲搜索", "查询全曲库") { startActivity(Intent(this, SongSearchActivity::class.java)) }
-        setupCard(R.id.btn_score_query, "📊", "成绩查询", "查看 B35/B15") { Toast.makeText(this, "开发中", Toast.LENGTH_SHORT).show() }
-        setupCard(R.id.btn_bind_df, "🌊", "绑定水鱼", "同步开发者 Token") { Toast.makeText(this, "暂未启用", Toast.LENGTH_SHORT).show() }
-        setupCard(R.id.btn_tools, "🧰", "工具箱", "常用小工具") { Toast.makeText(this, "开发中", Toast.LENGTH_SHORT).show() }
-        setupCard(R.id.btn_refresh, "🔄", "刷新数据", "同步最新记录") { loadData() }
-        setupCard(R.id.btn_logout_grid, "🚪", "退出登录", "清除缓存") {
-            getSharedPreferences("mizuki_prefs", MODE_PRIVATE).edit().clear().apply()
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
+        ivBgPlate = findViewById(R.id.iv_bg_plate)
+        ivFrame = findViewById(R.id.iv_frame)
+
+        setupGridButtons()
+        fetchUserProfile()
+    }
+
+    private fun setupGridButtons() {
+        findViewById<View>(R.id.btn_song_search).setOnClickListener {
+            startActivity(Intent(this, SongSearchActivity::class.java))
         }
-
-        loadData()
-    }
-
-    private fun setupCard(viewId: Int, icon: String, title: String, subtitle: String, onClick: () -> Unit) {
-        val card = findViewById<View>(viewId)
-        if (card != null) {
-            card.findViewById<TextView>(R.id.tv_icon)?.text = icon
-            card.findViewById<TextView>(R.id.tv_title)?.text = title
-            card.findViewById<TextView>(R.id.tv_subtitle)?.text = subtitle
-            card.setOnClickListener { onClick() }
+        findViewById<View>(R.id.btn_refresh).setOnClickListener {
+            fetchUserProfile()
+        }
+        findViewById<View>(R.id.btn_logout_grid).setOnClickListener {
+            logout()
+        }
+        findViewById<View>(R.id.btn_score_query).setOnClickListener {
+            Toast.makeText(this, "成绩查询功能开发中...", Toast.LENGTH_SHORT).show()
+        }
+        findViewById<View>(R.id.btn_bind_df).setOnClickListener {
+            Toast.makeText(this, "绑定功能开发中...", Toast.LENGTH_SHORT).show()
+        }
+        findViewById<View>(R.id.btn_tools).setOnClickListener {
+            Toast.makeText(this, "工具箱开发中...", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun loadData() {
-        RetrofitClient.getInstance(this).getProfile().enqueue(object : Callback<LoginResponse> {
-            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
-                    if (user.username == "登录过期") {
-                        tryAutoRefresh()
-                        return
-                    }
-                    updateUI(user)
-                } else {
-                    tvUsername.text = "同步失败"
-                    Toast.makeText(this@MainActivity, "错误码: ${response.code()}", Toast.LENGTH_SHORT).show()
-                }
-            }
-            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                tvUsername.text = "网络错误"
-                Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_LONG).show()
-            }
-        })
-    }
+    private fun fetchUserProfile() {
+        val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
+        val token = prefs.getString("access_token", "") ?: ""
 
-    private fun tryAutoRefresh() {
-        val prefs = getSharedPreferences("mizuki_prefs", MODE_PRIVATE)
-        val refreshToken = prefs.getString("refresh_token", null)
-
-        if (refreshToken.isNullOrEmpty()) {
-            Toast.makeText(this, "登录状态已失效，请重新登录", Toast.LENGTH_LONG).show()
-            prefs.edit().clear().apply()
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
+        if (token.isEmpty()) {
+            Toast.makeText(this, "提示：尚未绑定 Token，请先登录！", Toast.LENGTH_SHORT).show()
             return
         }
 
-        tvUsername.text = "正在安全续期..."
+        Toast.makeText(this, "正在同步玩家数据...", Toast.LENGTH_SHORT).show()
 
-        RetrofitClient.getInstance(this).refreshToken(refreshToken).enqueue(object : Callback<LoginResponse> {
-            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
-                    prefs.edit()
-                        .putString("access_token", user.token)
-                        .putString("refresh_token", user.refresh_token)
-                        .apply()
-                    updateUI(user)
-                    Toast.makeText(this@MainActivity, "自动续期完成", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val request = Request.Builder()
+                    .url("https://api.mizuki.top/api/user/profile")
+                    .addHeader("Authorization", "Bearer $token")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                val responseData = response.body()?.string()
+
+                if (response.isSuccessful && responseData != null) {
+                    val json = JSONObject(responseData)
+                    withContext(Dispatchers.Main) {
+                        updateUI(json)
+                    }
                 } else {
-                    Toast.makeText(this@MainActivity, "安全令牌失效，请重新授权", Toast.LENGTH_LONG).show()
-                    prefs.edit().clear().apply()
-                    startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-                    finish()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "获取数据失败: HTTP ${response.code()}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                tvUsername.text = "续期遇到网络波动"
-                Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_LONG).show()
-            }
-        })
+        }
     }
 
-    private fun updateUI(user: LoginResponse) {
-        tvUsername.text = user.username
-        tvRating.text = user.maimai_rating.toString()
-        tvFriendCode.text = "ID: ${user.friend_code}"
-        tvTrophy.text = user.trophy ?: ""
-        tvDan.text = user.dan ?: ""
-        tvClass.text = user.class_rank ?: ""
-        tvStar.text = "★×${user.star ?: 0}"
+    private fun updateUI(data: JSONObject) {
+        tvUsername.text = data.optString("username", "Unknown")
+        tvRating.text = data.optInt("maimai_rating", 0).toString()
+        tvFriendCode.text = "ID: ${data.optString("friend_code", "------")}"
+        tvTrophy.text = data.optString("trophy", "初出茅庐")
+        tvDan.text = data.optString("dan", "初学者")
+        tvClass.text = data.optString("class_rank", "B5")
+        tvStar.text = "★×${data.optInt("star", 0)}"
 
-        if (!user.icon_url.isNullOrEmpty()) {
-            Glide.with(this@MainActivity).load(user.icon_url).transform(RoundedCorners(20)).into(ivAvatar)
+        val iconUrl = data.optString("icon_url", "")
+        if (iconUrl.isNotEmpty()) {
+            // 因为在 activity_main.xml 里已经用了 CardView 物理切圆，这里直接 load 即可，双重保险！
+            Glide.with(this).load(iconUrl).into(ivAvatar)
         }
+    }
 
-        // 加载顶部姓名框
-        if (!user.plate_url.isNullOrEmpty()) {
-            Glide.with(this@MainActivity).load(user.plate_url).into(ivBgPlate)
-        }
-
-        // 加载全局底层背景图
-        if (!user.frame_url.isNullOrEmpty()) {
-            Glide.with(this@MainActivity).load(user.frame_url).centerCrop().into(ivFrame)
-        }
+    private fun logout() {
+        getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit().clear().apply()
+        Toast.makeText(this, "已退出当前账号", Toast.LENGTH_SHORT).show()
     }
 }

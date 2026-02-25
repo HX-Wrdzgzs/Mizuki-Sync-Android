@@ -1,12 +1,15 @@
 package com.example.mizukisync
 
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -14,76 +17,181 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
-import com.example.mizukisync.network.*
-import retrofit2.*
+import com.bumptech.glide.request.RequestOptions
+import com.example.mizukisync.network.UnsafeOkHttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import org.json.JSONObject
 
 class SongSearchActivity : AppCompatActivity() {
+
+    private lateinit var rvSongList: RecyclerView
+    private lateinit var etSearchKeyword: EditText
+
+    // 懒加载无敌网络客户端，防卡死
+    private val client by lazy { UnsafeOkHttpClient.getClient() }
+
+    private val songAdapter = SongAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_song_search)
 
-        val etSearch = findViewById<EditText>(R.id.et_search)
-        val btnSearch = findViewById<Button>(R.id.btn_do_search)
-        val rvSongs = findViewById<RecyclerView>(R.id.rv_songs)
+        rvSongList = findViewById(R.id.rv_song_list)
+        etSearchKeyword = findViewById(R.id.et_search_keyword)
 
-        rvSongs.layoutManager = LinearLayoutManager(this)
+        rvSongList.layoutManager = LinearLayoutManager(this)
+        rvSongList.adapter = songAdapter
 
-        btnSearch.setOnClickListener {
-            val keyword = etSearch.text.toString().trim()
-            // 只要有字就搜，什么都不要管
-            if (keyword.isNotEmpty()) {
-                search(keyword, rvSongs)
+        // 🌟 给右上角的筛选漏斗（三条杠）注入灵魂
+        findViewById<ImageView>(R.id.btn_filter).setOnClickListener {
+            Toast.makeText(this, "高级筛选功能（定数/版本）火热开发中！", Toast.LENGTH_SHORT).show()
+        }
+
+        // 监听搜索键盘动作
+        etSearchKeyword.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                val keyword = etSearchKeyword.text.toString().trim()
+                performSearch(keyword)
+                true
+            } else {
+                false
             }
         }
+
+        // 进页面先拉前 50 首歌验货
+        performSearch("")
     }
 
-    private fun search(keyword: String, rv: RecyclerView) {
-        Toast.makeText(this, "搜索中...", Toast.LENGTH_SHORT).show()
-        RetrofitClient.getInstance(this).searchMusic(keyword).enqueue(object : Callback<List<SongResult>> {
-            override fun onResponse(call: Call<List<SongResult>>, response: Response<List<SongResult>>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val list = response.body()!!
-                    if (list.isEmpty()) Toast.makeText(this@SongSearchActivity, "无结果", Toast.LENGTH_SHORT).show()
-                    rv.adapter = SongAdapter(list)
+    private fun performSearch(keyword: String) {
+        Toast.makeText(this, "正在从大后方调取数据...", Toast.LENGTH_SHORT).show()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // 🌟 核心升级：增加纯数字 ID 识别逻辑
+                val url = if (keyword.isNotEmpty()) {
+                    if (keyword.all { it.isDigit() }) {
+                        // 如果用户输入的全是数字，通知后端按 ID 查询！
+                        "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword"
+                    } else {
+                        "https://api.mizuki.top/api/songs/search?keyword=$keyword"
+                    }
                 } else {
-                    Toast.makeText(this@SongSearchActivity, "失败: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    "https://api.mizuki.top/api/songs/search"
+                }
+
+                val request = Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                val jsonString = response.body()?.string() ?: ""
+
+                if (response.isSuccessful && jsonString.isNotEmpty()) {
+                    val jsonObject = JSONObject(jsonString)
+
+                    if (jsonObject.optBoolean("success", false)) {
+                        val dataArray = jsonObject.optJSONArray("data")
+                        val songList = mutableListOf<JSONObject>()
+
+                        if (dataArray != null) {
+                            for (i in 0 until dataArray.length()) {
+                                songList.add(dataArray.getJSONObject(i))
+                            }
+                        }
+
+                        // 切回主线程刷新界面
+                        withContext(Dispatchers.Main) {
+                            songAdapter.updateData(songList)
+                            if (songList.isEmpty()) {
+                                Toast.makeText(this@SongSearchActivity, "没有找到相关乐曲，请检查输入", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@SongSearchActivity, "请求失败或暂无数据", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@SongSearchActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-            override fun onFailure(call: Call<List<SongResult>>, t: Throwable) {
-                Toast.makeText(this@SongSearchActivity, "网络错误", Toast.LENGTH_SHORT).show()
-            }
-        })
+        }
     }
 
-    inner class SongAdapter(private val songs: List<SongResult>) : RecyclerView.Adapter<SongAdapter.VH>() {
-        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
-            val title: TextView = v.findViewById(R.id.tv_title)
-            val artist: TextView = v.findViewById(R.id.tv_artist)
-            val ids: TextView = v.findViewById(R.id.tv_ids)
-            val score: TextView = v.findViewById(R.id.tv_score)
-            val rate: TextView = v.findViewById(R.id.tv_rate)
-            val level: TextView = v.findViewById(R.id.tv_level)
-            val cover: ImageView = v.findViewById(R.id.iv_cover)
-            val root: View = v
+    inner class SongAdapter : RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
+        private var songs = listOf<JSONObject>()
+
+        fun updateData(newSongs: List<JSONObject>) {
+            songs = newSongs
+            notifyDataSetChanged()
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_song, parent, false)
-            return VH(v)
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_song_card, parent, false)
+            return SongViewHolder(view)
         }
 
-        override fun onBindViewHolder(holder: VH, position: Int) {
-            val s = songs[position]
-            holder.title.text = s.title
-            holder.artist.text = s.artist ?: ""
-            holder.ids.text = "ID: ${s.id}"
-            holder.score.text = s.user_score
-            holder.rate.text = s.rate_icon
-            holder.level.text = s.level
-            Glide.with(this@SongSearchActivity).load(s.cover_url).transform(RoundedCorners(12)).into(holder.cover)
+        override fun getItemCount(): Int = songs.size
+
+        override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
+            val song = songs[position]
+
+            holder.tvTitle.text = song.optString("title", "未知曲目")
+            val artist = song.optString("artist", "未知曲师")
+            val bpm = song.optInt("bpm", 0)
+            holder.tvArtistBpm.text = "$artist / BPM: $bpm"
+
+            val jacketUrl = song.optString("jacket_url", "")
+            Glide.with(holder.itemView.context)
+                .load(jacketUrl)
+                .apply(RequestOptions.bitmapTransform(RoundedCorners(16)))
+                .into(holder.ivJacket)
+
+            holder.llDifficulties.removeAllViews()
+
+            val diffObj = song.optJSONObject("difficulties")
+            var diffArray = diffObj?.optJSONArray("dx")
+            if (diffArray == null || diffArray.length() == 0) {
+                diffArray = diffObj?.optJSONArray("standard")
+            }
+
+            if (diffArray != null) {
+                val colors = arrayOf("#4CAF50", "#FBC02D", "#F44336", "#9C27B0", "#E0E0E0")
+                for (i in 0 until diffArray.length()) {
+                    val diffData = diffArray.getJSONObject(i)
+                    val level = diffData.optString("level", "?")
+
+                    val chip = TextView(holder.itemView.context).apply {
+                        text = level
+                        textSize = 12f
+                        setTextColor(if (i == 4) Color.parseColor("#424242") else Color.WHITE)
+                        setPadding(16, 4, 16, 4)
+
+                        val shape = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 20f
+                            setColor(Color.parseColor(if (i < colors.size) colors[i] else "#9E9E9E"))
+                        }
+                        background = shape
+
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { setMargins(0, 0, 12, 0) }
+                    }
+                    holder.llDifficulties.addView(chip)
+                }
+            }
         }
 
-        override fun getItemCount() = songs.size
+        inner class SongViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val ivJacket: ImageView = itemView.findViewById(R.id.iv_song_jacket)
+            val tvTitle: TextView = itemView.findViewById(R.id.tv_song_title)
+            val tvArtistBpm: TextView = itemView.findViewById(R.id.tv_song_artist_bpm)
+            val llDifficulties: LinearLayout = itemView.findViewById(R.id.ll_difficulties)
+        }
     }
 }
