@@ -30,6 +30,7 @@
         <activity android:name=".MainActivity" />
         <activity android:name=".SongSearchActivity" />
         <activity android:name=".WebViewActivity" />
+        <activity android:name=".SongDetailActivity" />
     </application>
 
 </manifest>

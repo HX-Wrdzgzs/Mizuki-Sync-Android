@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import okhttp3.RequestBody
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -28,11 +29,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvFriendCode: TextView
     private lateinit var tvRating: TextView
 
-    // 隐藏的背景控件
     private lateinit var ivBgPlate: ImageView
     private lateinit var ivFrame: ImageView
 
-    // 懒加载网络客户端（专治黑屏）
     private val client by lazy { UnsafeOkHttpClient.getClient() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,9 +98,12 @@ class MainActivity : AppCompatActivity() {
 
                 if (response.isSuccessful && responseData != null) {
                     val json = JSONObject(responseData)
-                    withContext(Dispatchers.Main) {
-                        updateUI(json)
-                    }
+                    withContext(Dispatchers.Main) { updateUI(json) }
+
+                } else if (response.code() == 401) {
+                    // 🌟 核心拦截：抓到 401 过期信号，立刻启动无感续命！
+                    doSilentRefresh()
+
                 } else {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@MainActivity, "获取数据失败: HTTP ${response.code()}", Toast.LENGTH_SHORT).show()
@@ -111,6 +113,60 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
+            }
+        }
+    }
+
+    // 🌟 终极自动续命引擎
+    private suspend fun doSilentRefresh() {
+        val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
+        val refreshToken = prefs.getString("refresh_token", "") ?: ""
+
+        if (refreshToken.isEmpty()) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "身份凭证丢失，请重新登录", Toast.LENGTH_LONG).show()
+                logout()
+            }
+            return
+        }
+
+        try {
+            // 构建一个空请求体的 POST 请求
+            val emptyBody = RequestBody.create(null, ByteArray(0))
+            val request = Request.Builder()
+                .url("https://api.mizuki.top/api/oauth/refresh?refresh_token=$refreshToken")
+                .post(emptyBody)
+                .build()
+
+            val response = client.newCall(request).execute()
+            val responseData = response.body()?.string()
+
+            if (response.isSuccessful && responseData != null) {
+                val json = JSONObject(responseData)
+
+                // 1. 剥削后端返回的最新 Token 并存下来
+                val newToken = json.optString("token", "")
+                val newRefresh = json.optString("refresh_token", "")
+
+                prefs.edit()
+                    .putString("access_token", newToken)
+                    .putString("refresh_token", if (newRefresh.isNotEmpty()) newRefresh else refreshToken)
+                    .apply()
+
+                // 2. 无缝刷新屏幕 UI
+                withContext(Dispatchers.Main) {
+                    updateUI(json)
+                    Toast.makeText(this@MainActivity, "✨ 登录已过期，但已为您在后台自动续签！", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "长期未活跃，身份已彻底过期，请重新授权", Toast.LENGTH_LONG).show()
+                    logout()
+                }
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "静默刷新网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -126,7 +182,6 @@ class MainActivity : AppCompatActivity() {
 
         val iconUrl = data.optString("icon_url", "")
         if (iconUrl.isNotEmpty()) {
-            // 因为在 activity_main.xml 里已经用了 CardView 物理切圆，这里直接 load 即可，双重保险！
             Glide.with(this).load(iconUrl).into(ivAvatar)
         }
     }
@@ -134,5 +189,7 @@ class MainActivity : AppCompatActivity() {
     private fun logout() {
         getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit().clear().apply()
         Toast.makeText(this, "已退出当前账号", Toast.LENGTH_SHORT).show()
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
     }
 }

@@ -1,5 +1,6 @@
 package com.example.mizukisync
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,10 +33,12 @@ class SongSearchActivity : AppCompatActivity() {
     private lateinit var rvSongList: RecyclerView
     private lateinit var etSearchKeyword: EditText
 
-    // 懒加载无敌网络客户端，防卡死
+    // 懒加载网络客户端，防卡死
     private val client by lazy { UnsafeOkHttpClient.getClient() }
-
     private val songAdapter = SongAdapter()
+
+    // 记录当前选择的筛选定数
+    private var currentLevelFilter = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,41 +50,46 @@ class SongSearchActivity : AppCompatActivity() {
         rvSongList.layoutManager = LinearLayoutManager(this)
         rvSongList.adapter = songAdapter
 
-        // 🌟 给右上角的筛选漏斗（三条杠）注入灵魂
+        // 🌟 高级筛选菜单：弹出定数选择器！
         findViewById<ImageView>(R.id.btn_filter).setOnClickListener {
-            Toast.makeText(this, "高级筛选功能（定数/版本）火热开发中！", Toast.LENGTH_SHORT).show()
+            val levels = arrayOf("全部显示", "13", "13+", "14", "14+", "15")
+            AlertDialog.Builder(this)
+                .setTitle("筛选谱面定数")
+                .setItems(levels) { _, which ->
+                    currentLevelFilter = if (which == 0) "" else levels[which]
+                    val toastMsg = if (currentLevelFilter.isEmpty()) "已取消筛选" else "正在筛选: $currentLevelFilter"
+                    Toast.makeText(this, toastMsg, Toast.LENGTH_SHORT).show()
+
+                    // 带着筛选条件重新搜索
+                    performSearch(etSearchKeyword.text.toString().trim())
+                }.show()
         }
 
-        // 监听搜索键盘动作
         etSearchKeyword.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                val keyword = etSearchKeyword.text.toString().trim()
-                performSearch(keyword)
+                performSearch(etSearchKeyword.text.toString().trim())
                 true
-            } else {
-                false
-            }
+            } else false
         }
 
-        // 进页面先拉前 50 首歌验货
+        // 默认加载
         performSearch("")
     }
 
     private fun performSearch(keyword: String) {
-        Toast.makeText(this, "正在从大后方调取数据...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "正在调取大后方数据...", Toast.LENGTH_SHORT).show()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 🌟 核心升级：增加纯数字 ID 识别逻辑
+                // 拼接带搜索词和筛选条件的 URL (先在前端做过滤)
                 val url = if (keyword.isNotEmpty()) {
                     if (keyword.all { it.isDigit() }) {
-                        // 如果用户输入的全是数字，通知后端按 ID 查询！
                         "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword"
                     } else {
                         "https://api.mizuki.top/api/songs/search?keyword=$keyword"
                     }
                 } else {
-                    "https://api.mizuki.top/api/songs/search"
+                    "https://api.mizuki.top/api/songs/search?limit=100"
                 }
 
                 val request = Request.Builder().url(url).build()
@@ -96,27 +105,42 @@ class SongSearchActivity : AppCompatActivity() {
 
                         if (dataArray != null) {
                             for (i in 0 until dataArray.length()) {
-                                songList.add(dataArray.getJSONObject(i))
+                                val song = dataArray.getJSONObject(i)
+
+                                // 前端定数过滤
+                                if (currentLevelFilter.isNotEmpty()) {
+                                    var hasLevel = false
+                                    val diffObj = song.optJSONObject("difficulties")
+                                    val dx = diffObj?.optJSONArray("dx")
+                                    val std = diffObj?.optJSONArray("standard")
+
+                                    if (dx != null) {
+                                        for (j in 0 until dx.length()) {
+                                            if (dx.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true
+                                        }
+                                    }
+                                    if (std != null) {
+                                        for (j in 0 until std.length()) {
+                                            if (std.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true
+                                        }
+                                    }
+                                    if (!hasLevel) continue
+                                }
+
+                                songList.add(song)
                             }
                         }
 
-                        // 切回主线程刷新界面
                         withContext(Dispatchers.Main) {
                             songAdapter.updateData(songList)
                             if (songList.isEmpty()) {
-                                Toast.makeText(this@SongSearchActivity, "没有找到相关乐曲，请检查输入", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@SongSearchActivity, "没有找到符合条件的乐曲", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@SongSearchActivity, "请求失败或暂无数据", Toast.LENGTH_SHORT).show()
-                    }
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@SongSearchActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                withContext(Dispatchers.Main) { Toast.makeText(this@SongSearchActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
         }
     }
@@ -151,32 +175,24 @@ class SongSearchActivity : AppCompatActivity() {
                 .into(holder.ivJacket)
 
             holder.llDifficulties.removeAllViews()
-
             val diffObj = song.optJSONObject("difficulties")
             var diffArray = diffObj?.optJSONArray("dx")
-            if (diffArray == null || diffArray.length() == 0) {
-                diffArray = diffObj?.optJSONArray("standard")
-            }
+            if (diffArray == null || diffArray.length() == 0) diffArray = diffObj?.optJSONArray("standard")
 
             if (diffArray != null) {
-                val colors = arrayOf("#4CAF50", "#FBC02D", "#F44336", "#9C27B0", "#E0E0E0")
+                val colors = arrayOf("#4CAF50", "#FBC02D", "#F44336", "#9C27B0", "#E1BEE7")
                 for (i in 0 until diffArray.length()) {
-                    val diffData = diffArray.getJSONObject(i)
-                    val level = diffData.optString("level", "?")
-
+                    val level = diffArray.getJSONObject(i).optString("level", "?")
                     val chip = TextView(holder.itemView.context).apply {
                         text = level
                         textSize = 12f
-                        setTextColor(if (i == 4) Color.parseColor("#424242") else Color.WHITE)
+                        setTextColor(if (i == 4) Color.parseColor("#6A1B9A") else Color.WHITE)
                         setPadding(16, 4, 16, 4)
-
-                        val shape = GradientDrawable().apply {
+                        background = GradientDrawable().apply {
                             shape = GradientDrawable.RECTANGLE
                             cornerRadius = 20f
                             setColor(Color.parseColor(if (i < colors.size) colors[i] else "#9E9E9E"))
                         }
-                        background = shape
-
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.WRAP_CONTENT,
                             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -184,6 +200,13 @@ class SongSearchActivity : AppCompatActivity() {
                     }
                     holder.llDifficulties.addView(chip)
                 }
+            }
+
+            // 🌟 点击卡片，跳跃到你绝美的猛男粉详情页！
+            holder.itemView.setOnClickListener {
+                val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
+                intent.putExtra("song_data", song.toString())
+                startActivity(intent)
             }
         }
 
