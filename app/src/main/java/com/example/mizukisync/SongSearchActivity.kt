@@ -33,12 +33,13 @@ class SongSearchActivity : AppCompatActivity() {
     private lateinit var rvSongList: RecyclerView
     private lateinit var etSearchKeyword: EditText
 
-    // 懒加载网络客户端，防卡死
     private val client by lazy { UnsafeOkHttpClient.getClient() }
     private val songAdapter = SongAdapter()
 
-    // 记录当前选择的筛选定数
+    // 记录三大筛选条件
     private var currentLevelFilter = ""
+    private var currentVersionFilter = ""
+    private var currentCategoryFilter = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,21 +51,34 @@ class SongSearchActivity : AppCompatActivity() {
         rvSongList.layoutManager = LinearLayoutManager(this)
         rvSongList.adapter = songAdapter
 
-        // 🌟 高级筛选菜单：弹出定数选择器！
-        findViewById<ImageView>(R.id.btn_filter).setOnClickListener {
-            val levels = arrayOf("全部显示", "13", "13+", "14", "14+", "15")
-            AlertDialog.Builder(this)
-                .setTitle("筛选谱面定数")
-                .setItems(levels) { _, which ->
-                    currentLevelFilter = if (which == 0) "" else levels[which]
-                    val toastMsg = if (currentLevelFilter.isEmpty()) "已取消筛选" else "正在筛选: $currentLevelFilter"
-                    Toast.makeText(this, toastMsg, Toast.LENGTH_SHORT).show()
-
-                    // 带着筛选条件重新搜索
-                    performSearch(etSearchKeyword.text.toString().trim())
-                }.show()
+        // 🌟 1. 定数筛选
+        findViewById<View>(R.id.btn_filter_level)?.setOnClickListener {
+            val levels = arrayOf("全部定数", "11", "11+", "12", "12+", "13", "13+", "14", "14+", "15")
+            AlertDialog.Builder(this).setTitle("筛选谱面定数").setItems(levels) { _, which ->
+                currentLevelFilter = if (which == 0) "" else levels[which]
+                performSearch(etSearchKeyword.text.toString().trim())
+            }.show()
         }
 
+        // 🌟 2. 版本筛选
+        findViewById<View>(R.id.btn_filter_version)?.setOnClickListener {
+            val versions = arrayOf("全部版本", "maimai", "GreeN", "ORANGE", "PiNK", "MURASAKi", "MiLK", "FiNALE", "でらっくす", "Splash", "UNiVERSE", "FESTiVAL", "BUDDiES", "PRiSM")
+            AlertDialog.Builder(this).setTitle("筛选初出版本").setItems(versions) { _, which ->
+                currentVersionFilter = if (which == 0) "" else versions[which]
+                performSearch(etSearchKeyword.text.toString().trim())
+            }.show()
+        }
+
+        // 🌟 3. 类别筛选
+        findViewById<View>(R.id.btn_filter_category)?.setOnClickListener {
+            val categories = arrayOf("全部类别", "POPS & アニメ", "niconico & ボーカロイド", "東方Project", "ゲーム & バラエティ", "maimai", "オンゲキ & CHUNITHM")
+            AlertDialog.Builder(this).setTitle("筛选乐曲类别").setItems(categories) { _, which ->
+                currentCategoryFilter = if (which == 0) "" else categories[which]
+                performSearch(etSearchKeyword.text.toString().trim())
+            }.show()
+        }
+
+        // 监听回车搜索
         etSearchKeyword.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch(etSearchKeyword.text.toString().trim())
@@ -72,25 +86,18 @@ class SongSearchActivity : AppCompatActivity() {
             } else false
         }
 
-        // 默认加载
         performSearch("")
     }
 
     private fun performSearch(keyword: String) {
-        Toast.makeText(this, "正在调取大后方数据...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "正在检索后方数据库...", Toast.LENGTH_SHORT).show()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 拼接带搜索词和筛选条件的 URL (先在前端做过滤)
                 val url = if (keyword.isNotEmpty()) {
-                    if (keyword.all { it.isDigit() }) {
-                        "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword"
-                    } else {
-                        "https://api.mizuki.top/api/songs/search?keyword=$keyword"
-                    }
-                } else {
-                    "https://api.mizuki.top/api/songs/search?limit=100"
-                }
+                    if (keyword.all { it.isDigit() }) "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword"
+                    else "https://api.mizuki.top/api/songs/search?keyword=$keyword"
+                } else "https://api.mizuki.top/api/songs/search?limit=150"
 
                 val request = Request.Builder().url(url).build()
                 val response = client.newCall(request).execute()
@@ -98,7 +105,6 @@ class SongSearchActivity : AppCompatActivity() {
 
                 if (response.isSuccessful && jsonString.isNotEmpty()) {
                     val jsonObject = JSONObject(jsonString)
-
                     if (jsonObject.optBoolean("success", false)) {
                         val dataArray = jsonObject.optJSONArray("data")
                         val songList = mutableListOf<JSONObject>()
@@ -106,26 +112,21 @@ class SongSearchActivity : AppCompatActivity() {
                         if (dataArray != null) {
                             for (i in 0 until dataArray.length()) {
                                 val song = dataArray.getJSONObject(i)
+                                val songStr = song.toString()
 
-                                // 前端定数过滤
+                                // 前端多重过滤
                                 if (currentLevelFilter.isNotEmpty()) {
                                     var hasLevel = false
-                                    val diffObj = song.optJSONObject("difficulties")
-                                    val dx = diffObj?.optJSONArray("dx")
-                                    val std = diffObj?.optJSONArray("standard")
-
-                                    if (dx != null) {
-                                        for (j in 0 until dx.length()) {
-                                            if (dx.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true
-                                        }
-                                    }
-                                    if (std != null) {
-                                        for (j in 0 until std.length()) {
-                                            if (std.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true
-                                        }
-                                    }
+                                    val diffs = song.optJSONObject("difficulties")
+                                    val dx = diffs?.optJSONArray("dx")
+                                    val std = diffs?.optJSONArray("standard")
+                                    if (dx != null) { for (j in 0 until dx.length()) if (dx.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true }
+                                    if (std != null) { for (j in 0 until std.length()) if (std.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true }
                                     if (!hasLevel) continue
                                 }
+
+                                if (currentVersionFilter.isNotEmpty() && !songStr.contains(currentVersionFilter, ignoreCase = true)) continue
+                                if (currentCategoryFilter.isNotEmpty() && !songStr.contains(currentCategoryFilter, ignoreCase = true)) continue
 
                                 songList.add(song)
                             }
@@ -133,9 +134,7 @@ class SongSearchActivity : AppCompatActivity() {
 
                         withContext(Dispatchers.Main) {
                             songAdapter.updateData(songList)
-                            if (songList.isEmpty()) {
-                                Toast.makeText(this@SongSearchActivity, "没有找到符合条件的乐曲", Toast.LENGTH_SHORT).show()
-                            }
+                            if (songList.isEmpty()) Toast.makeText(this@SongSearchActivity, "没有找到符合条件的乐曲", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -169,10 +168,7 @@ class SongSearchActivity : AppCompatActivity() {
             holder.tvArtistBpm.text = "$artist / BPM: $bpm"
 
             val jacketUrl = song.optString("jacket_url", "")
-            Glide.with(holder.itemView.context)
-                .load(jacketUrl)
-                .apply(RequestOptions.bitmapTransform(RoundedCorners(16)))
-                .into(holder.ivJacket)
+            Glide.with(holder.itemView.context).load(jacketUrl).apply(RequestOptions.bitmapTransform(RoundedCorners(16))).into(holder.ivJacket)
 
             holder.llDifficulties.removeAllViews()
             val diffObj = song.optJSONObject("difficulties")
@@ -193,20 +189,21 @@ class SongSearchActivity : AppCompatActivity() {
                             cornerRadius = 20f
                             setColor(Color.parseColor(if (i < colors.size) colors[i] else "#9E9E9E"))
                         }
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply { setMargins(0, 0, 12, 0) }
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 12, 0) }
                     }
                     holder.llDifficulties.addView(chip)
                 }
             }
 
-            // 🌟 点击卡片，跳跃到你绝美的猛男粉详情页！
+            // 🌟 终极防闪退跳跃：安全捕捉
             holder.itemView.setOnClickListener {
-                val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
-                intent.putExtra("song_data", song.toString())
-                startActivity(intent)
+                try {
+                    val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
+                    intent.putExtra("song_data", song.toString())
+                    startActivity(intent)
+                } catch (e: Throwable) {
+                    Toast.makeText(this@SongSearchActivity, "跳转失败，请检查清单文件", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 

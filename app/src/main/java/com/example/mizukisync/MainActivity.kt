@@ -77,7 +77,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun fetchUserProfile() {
         val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("access_token", "") ?: ""
+        // 🌟 核心修复：统一使用 "token" 这个钥匙来开箱！
+        val token = prefs.getString("token", "") ?: ""
 
         if (token.isEmpty()) {
             Toast.makeText(this, "提示：尚未绑定 Token，请先登录！", Toast.LENGTH_SHORT).show()
@@ -101,7 +102,7 @@ class MainActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) { updateUI(json) }
 
                 } else if (response.code() == 401) {
-                    // 🌟 核心拦截：抓到 401 过期信号，立刻启动无感续命！
+                    // 抓到 401 过期信号，立刻启动无感续命！
                     doSilentRefresh()
 
                 } else {
@@ -144,16 +145,15 @@ class MainActivity : AppCompatActivity() {
             if (response.isSuccessful && responseData != null) {
                 val json = JSONObject(responseData)
 
-                // 1. 剥削后端返回的最新 Token 并存下来
                 val newToken = json.optString("token", "")
                 val newRefresh = json.optString("refresh_token", "")
 
                 prefs.edit()
-                    .putString("access_token", newToken)
+                    // 🌟 核心修复：续命成功后，保存的新钥匙也要叫 "token"！
+                    .putString("token", newToken)
                     .putString("refresh_token", if (newRefresh.isNotEmpty()) newRefresh else refreshToken)
                     .apply()
 
-                // 2. 无缝刷新屏幕 UI
                 withContext(Dispatchers.Main) {
                     updateUI(json)
                     Toast.makeText(this@MainActivity, "✨ 登录已过期，但已为您在后台自动续签！", Toast.LENGTH_SHORT).show()

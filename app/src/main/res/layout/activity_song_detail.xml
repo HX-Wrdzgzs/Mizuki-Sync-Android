@@ -1,168 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F6FA"
     android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <ImageView
-            android:id="@+id/iv_header_bg"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="320dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_launcher_background"
-            android:tint="#80000000"
-            android:tintMode="src_over"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:layout_height="350dp"
+            android:background="#3949AB">
+            <ImageView
+                android:id="@+id/iv_header_bg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#60000000" />
+        </FrameLayout>
 
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+        <FrameLayout
+            android:id="@+id/btn_back_circle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|start"
             android:layout_marginStart="16dp"
             android:layout_marginTop="48dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="#FFFFFF"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:background="#40FFFFFF">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="←"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </FrameLayout>
 
-        <androidx.cardview.widget.CardView
+        <LinearLayout
             android:id="@+id/card_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="-80dp"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="32dp"
-            app:cardElevation="4dp"
-            app:layout_constraintTop_toBottomOf="@+id/iv_header_bg"
-            tools:layout_editor_absoluteX="16dp">
+            android:layout_gravity="top"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="260dp"
+            android:background="#FFFFFF"
+            android:orientation="vertical"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:paddingTop="110dp"
+            android:paddingBottom="32dp">
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tv_detail_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="100dp"
-                android:paddingBottom="32dp"
-                android:paddingHorizontal="24dp">
+                android:gravity="center"
+                android:text="Loading..."
+                android:textColor="#212121"
+                android:textSize="24sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tv_detail_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Song Title"
-                    android:textColor="#212121"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
+            <TextView
+                android:id="@+id/tv_detail_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="Artist"
+                android:textColor="#757575"
+                android:textSize="15sp" />
 
-                <TextView
-                    android:id="@+id/tv_detail_artist"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Artist Name"
-                    android:textColor="#757575"
-                    android:textSize="15sp"
-                    android:gravity="center"/>
+            <TextView android:text="❙ 基本资料" android:layout_marginTop="28dp" android:textColor="#424242" android:textSize="14sp" android:textStyle="bold"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F2F5" android:layout_marginTop="8dp"/>
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_gravity="center"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/tv_detail_bpm"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="BPM: ---"
-                        android:textColor="#9E9E9E"
-                        android:textSize="12sp"/>
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#E0E0E0"/>
-
-                    <TextView
-                        android:id="@+id/tv_detail_id"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="ID: ---"
-                        android:textColor="#9E9E9E"
-                        android:textSize="12sp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="16dp">
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:text="初出版本" android:textColor="#9E9E9E" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_detail_version" android:text="未知" android:textColor="#212121" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/ll_difficulty_selector"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:background="#F5F6FA"
-                    android:padding="4dp"
-                    android:orientation="horizontal"
-                    android:gravity="center">
-
-                    <TextView android:text="BASIC\nWait" android:gravity="center" android:textSize="11sp" android:textColor="#FFFFFF" android:background="#4CAF50" android:paddingVertical="8dp" android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="2dp"/>
-                    <TextView android:text="ADVANCED\nWait" android:gravity="center" android:textSize="11sp" android:textColor="#FFFFFF" android:background="#FBC02D" android:paddingVertical="8dp" android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="2dp"/>
-                    <TextView android:text="EXPERT\nWait" android:gravity="center" android:textSize="11sp" android:textColor="#FFFFFF" android:background="#F44336" android:paddingVertical="8dp" android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="2dp"/>
-                    <androidx.cardview.widget.CardView android:layout_weight="1.2" android:layout_width="0dp" android:layout_height="wrap_content" app:cardCornerRadius="8dp" app:cardElevation="4dp" android:layout_margin="2dp">
-                        <TextView android:text="MASTER\n13+" android:gravity="center" android:textStyle="bold" android:textSize="12sp" android:textColor="#FFFFFF" android:background="#9C27B0" android:paddingVertical="12dp" android:layout_width="match_parent" android:layout_height="match_parent"/>
-                    </androidx.cardview.widget.CardView>
-                    <TextView android:text="Re:MASTER\nWait" android:gravity="center" android:textSize="11sp" android:textColor="#424242" android:background="#E1BEE7" android:paddingVertical="8dp" android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="2dp"/>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:text="BPM" android:textColor="#9E9E9E" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_detail_bpm" android:text="000" android:textColor="#212121" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                 </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="我的成绩"
-                    android:layout_marginTop="32dp"
-                    android:textColor="#212121"
-                    android:textSize="18sp"
-                    android:textStyle="bold"/>
-
-                <View android:layout_width="40dp" android:layout_height="4dp" android:background="#1976D2" android:layout_marginTop="4dp" app:cardCornerRadius="2dp"/>
-
-                <TextView
-                    android:id="@+id/tv_my_score_placeholder"
-                    android:layout_width="match_parent"
-                    android:layout_height="150dp"
-                    android:layout_marginTop="16dp"
-                    android:background="#F5F6FA"
-                    android:gravity="center"
-                    android:text="在此处展示详细分数、评级、FC/AP状态\n(等待后端接口接入)"
-                    android:textColor="#BDBDBD"/>
-
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
 
-        <androidx.cardview.widget.CardView
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/card_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/card_content">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="16dp">
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:text="乐曲类别" android:textColor="#9E9E9E" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_detail_category" android:text="未知" android:textColor="#212121" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:text="曲目 ID" android:textColor="#9E9E9E" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_detail_id" android:text="#000" android:textColor="#212121" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
 
+            <TextView android:text="❙ 谱面定数与统计" android:layout_marginTop="32dp" android:textColor="#424242" android:textSize="14sp" android:textStyle="bold"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F2F5" android:layout_marginTop="8dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center_vertical">
+                <TextView android:id="@+id/tv_detail_const" android:text="-.-" android:textColor="#E53935" android:textSize="36sp" android:textStyle="bold"/>
+                <TextView android:text="官方拟合定数" android:textColor="#9E9E9E" android:textSize="12sp" android:layout_marginStart="12dp" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:background="#F8F9FB" android:orientation="horizontal" android:padding="12dp">
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                    <TextView android:text="TAP" android:textColor="#D32F2F" android:textSize="11sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_detail_tap" android:text="-" android:textColor="#212121" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                    <TextView android:text="HOLD" android:textColor="#FBC02D" android:textSize="11sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_detail_hold" android:text="-" android:textColor="#212121" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                    <TextView android:text="SLIDE" android:textColor="#1976D2" android:textSize="11sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_detail_slide" android:text="-" android:textColor="#212121" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                    <TextView android:text="TOUCH" android:textColor="#9C27B0" android:textSize="11sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_detail_touch" android:text="-" android:textColor="#212121" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                    <TextView android:text="BREAK" android:textColor="#FF6D00" android:textSize="11sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_detail_break" android:text="-" android:textColor="#212121" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical">
+                <TextView android:text="谱面作者" android:textColor="#9E9E9E" android:textSize="12sp"/>
+                <TextView android:id="@+id/tv_detail_designer" android:text="未知" android:textColor="#212121" android:textSize="15sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+            </LinearLayout>
+
+            <TextView android:text="❙ 我的最佳达成率" android:layout_marginTop="32dp" android:textColor="#424242" android:textSize="14sp" android:textStyle="bold"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F2F5" android:layout_marginTop="8dp"/>
+
+            <TextView
+                android:id="@+id/tv_my_score_placeholder"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="16dp"
+                android:background="#F5F6FA"
+                android:gravity="center"
+                android:text="详细分数同步接口开发中..."
+                android:textColor="#BDBDBD"/>
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/card_jacket_pop"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="160dp"
+            android:background="#E0E0E0">
             <ImageView
                 android:id="@+id/iv_detail_jacket_pop"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:background="#E0E0E0" />
-        </androidx.cardview.widget.CardView>
+                android:scaleType="centerCrop" />
+        </FrameLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </FrameLayout>
 </ScrollView>
