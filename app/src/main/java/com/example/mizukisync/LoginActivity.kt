@@ -33,14 +33,12 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
 
-        // 🌟 核心修复 1：光速查验本地记忆 (无缝秒登！)
-        // 只要手机里存了 token，连界面都不渲染了，直接化身闪电侠冲进大厅！
         val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
         val savedToken = prefs.getString("token", "")
         if (!savedToken.isNullOrEmpty()) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
-            return // 终止后续操作
+            return
         }
 
         setContentView(R.layout.activity_login)
@@ -69,16 +67,19 @@ class LoginActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful && jsonString.isNotEmpty()) {
                         val json = JSONObject(jsonString)
-                        val token = json.optString("token")
+
+                        // 🌟 修复点：兼容两种命名，并同时提取 15分钟短牌 和 30天长牌！
+                        val token = json.optString("token", json.optString("access_token", ""))
+                        val refreshToken = json.optString("refresh_token", "")
                         val username = json.optString("username", "玩家")
 
                         if (token.isNotEmpty()) {
-                            // 🌟 核心修复 2：拿到 Token 后死死攥在手里，永久刻在手机本地！
                             val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
                             prefs.edit()
-                                .putString("token", token)
+                                .putString("token", token)                 // 存入 15分钟 的门禁卡
+                                .putString("refresh_token", refreshToken)  // 🌟 救命稻草：把 30天 的 VIP 金牌死死攥在手里！
                                 .putString("username", username)
-                                .apply() // 异步保存，绝不卡顿
+                                .apply()
 
                             Toast.makeText(this@LoginActivity, "欢迎回来，${username}！", Toast.LENGTH_LONG).show()
                             startActivity(Intent(this@LoginActivity, MainActivity::class.java))

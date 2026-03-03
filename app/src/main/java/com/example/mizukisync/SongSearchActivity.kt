@@ -94,10 +94,11 @@ class SongSearchActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // 🌟 核心救命代码：在所有请求的末尾强行焊死 notes=true！逼迫服务器交出物量数据！
                 val url = if (keyword.isNotEmpty()) {
-                    if (keyword.all { it.isDigit() }) "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword"
-                    else "https://api.mizuki.top/api/songs/search?keyword=$keyword"
-                } else "https://api.mizuki.top/api/songs/search?limit=150"
+                    if (keyword.all { it.isDigit() }) "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword&notes=true"
+                    else "https://api.mizuki.top/api/songs/search?keyword=$keyword&notes=true"
+                } else "https://api.mizuki.top/api/songs/search?limit=150&notes=true"
 
                 val request = Request.Builder().url(url).build()
                 val response = client.newCall(request).execute()
@@ -199,6 +200,7 @@ class SongSearchActivity : AppCompatActivity() {
             holder.itemView.setOnClickListener {
                 try {
                     val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
+                    // 因为我们在这里加上了 notes=true，传给下一页的 song.toString() 里就会携带物量数据！
                     intent.putExtra("song_data", song.toString())
                     startActivity(intent)
                 } catch (e: Throwable) {
