@@ -160,26 +160,30 @@
                             </LinearLayout>
                         </LinearLayout>
 
-                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:background="#F8FAFC" android:orientation="horizontal" android:padding="16dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:background="#F8FAFC" android:orientation="horizontal" android:padding="12dp">
                             <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TAP" android:textColor="#EF4444" android:textSize="11sp" android:textStyle="bold"/>
-                                <TextView android:id="@+id/tv_detail_tap" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TOTAL" android:textColor="#64748B" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                             </LinearLayout>
                             <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="HOLD" android:textColor="#EAB308" android:textSize="11sp" android:textStyle="bold"/>
-                                <TextView android:id="@+id/tv_detail_hold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TAP" android:textColor="#EF4444" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_tap" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                             </LinearLayout>
                             <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SLIDE" android:textColor="#3B82F6" android:textSize="11sp" android:textStyle="bold"/>
-                                <TextView android:id="@+id/tv_detail_slide" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="HOLD" android:textColor="#EAB308" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_hold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                             </LinearLayout>
                             <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TOUCH" android:textColor="#A855F7" android:textSize="11sp" android:textStyle="bold"/>
-                                <TextView android:id="@+id/tv_detail_touch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SLIDE" android:textColor="#3B82F6" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_slide" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                             </LinearLayout>
                             <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BREAK" android:textColor="#F97316" android:textSize="11sp" android:textStyle="bold"/>
-                                <TextView android:id="@+id/tv_detail_break" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TOUCH" android:textColor="#A855F7" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_touch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                            </LinearLayout>
+                            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BREAK" android:textColor="#F97316" android:textSize="10sp" android:textStyle="bold"/>
+                                <TextView android:id="@+id/tv_detail_break" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#1E293B" android:textSize="13sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
                             </LinearLayout>
                         </LinearLayout>
 

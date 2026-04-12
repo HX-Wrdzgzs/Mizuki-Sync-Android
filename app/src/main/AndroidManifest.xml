@@ -27,10 +27,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity" />
-        <activity android:name=".SongSearchActivity" />
-        <activity android:name=".WebViewActivity" />
-        <activity android:name=".SongDetailActivity" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SongSearchActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".WebViewActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SongDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".B50Activity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
     </application>
 
 </manifest>

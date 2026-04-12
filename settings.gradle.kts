@@ -16,9 +16,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // 🌟 这里换成了正确的 Kotlin DSL 语法
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
 rootProject.name = "Mizuki Sync"
 include(":app")
- 

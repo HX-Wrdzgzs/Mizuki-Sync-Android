@@ -4,124 +4,70 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F5F6FA">
+    android:background="#F8F9FD">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="32dp">
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="#FFFFFF">
-
-            <FrameLayout
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="2dp">
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <ImageView android:id="@+id/iv_bg_plate" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone"/>
-                <ImageView android:id="@+id/iv_frame" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center_horizontal"
-                    android:paddingTop="32dp"
-                    android:paddingBottom="40dp">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="86dp"
-                        android:layout_height="86dp"
-                        app:cardCornerRadius="43dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#E0E0E0">
-                        <ImageView
-                            android:id="@+id/iv_avatar"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:scaleType="centerCrop"/>
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView android:id="@+id/tv_username" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Name" android:textColor="#212121" android:textSize="22sp" android:textStyle="bold" android:letterSpacing="0.1"/>
-                    <TextView android:id="@+id/tv_trophy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:layout_marginHorizontal="24dp" android:text="Trophy" android:textColor="#FF9800" android:textSize="12sp" android:textStyle="italic" android:gravity="center" android:maxLines="2"/>
-
-                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal" android:gravity="center_vertical">
-                        <TextView android:id="@+id/tv_dan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="段位" android:textColor="#FFFFFF" android:textSize="12sp" android:background="#D32F2F" android:paddingHorizontal="8dp" android:paddingVertical="2dp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_class" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="A5" android:textColor="#FFFFFF" android:textSize="12sp" android:background="#C2185B" android:paddingHorizontal="8dp" android:paddingVertical="2dp" android:layout_marginStart="8dp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_star" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="★×0" android:textColor="#424242" android:textSize="14sp" android:layout_marginStart="12dp" android:textStyle="bold"/>
-                    </LinearLayout>
-
-                    <TextView android:id="@+id/tv_friend_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="ID: ----------" android:textColor="#9E9E9E" android:textSize="11sp"/>
-                    <TextView android:id="@+id/tv_rating" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="00000" android:textColor="#1976D2" android:textSize="56sp" android:textStyle="bold"/>
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:paddingVertical="28dp">
+                <androidx.cardview.widget.CardView android:layout_width="86dp" android:layout_height="86dp" app:cardCornerRadius="43dp" app:cardElevation="0dp" app:cardBackgroundColor="#F0F2F8"><ImageView android:id="@+id/iv_avatar" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop"/></androidx.cardview.widget.CardView>
+                <TextView android:id="@+id/tv_username" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Name" android:textColor="#1A1C1E" android:textSize="22sp" android:textStyle="bold"/>
+                <TextView android:id="@+id/tv_trophy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:background="@drawable/bg_trophy_plate" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:text="正在同步称号..." android:textColor="#FF9800" android:textSize="11sp" android:textStyle="bold" android:maxWidth="200dp" android:singleLine="true" android:ellipsize="marquee" android:marqueeRepeatLimit="marquee_forever" android:focusable="true" android:focusableInTouchMode="true" android:scrollHorizontally="true"/>
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical">
+                    <TextView android:id="@+id/tv_dan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:textColor="#FFFFFF" android:textSize="11sp" android:background="#D32F2F" android:paddingHorizontal="8dp" android:paddingVertical="2dp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_class" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:textColor="#FFFFFF" android:textSize="11sp" android:background="#C2185B" android:paddingHorizontal="8dp" android:paddingVertical="2dp" android:layout_marginStart="8dp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_star" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="★×0" android:textColor="#44474E" android:textSize="13sp" android:layout_marginStart="10dp" android:textStyle="bold"/>
                 </LinearLayout>
-            </FrameLayout>
+                <TextView android:id="@+id/tv_friend_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="ID: ----------" android:textColor="#74777F" android:textSize="11sp"/>
+                <TextView android:id="@+id/tv_rating" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="00000" android:textColor="#1976D2" android:textSize="56sp" android:fontFamily="sans-serif-black"/>
+            </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <LinearLayout
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_recent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                <androidx.cardview.widget.CardView android:id="@+id/btn_song_search" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_search" app:tint="#1976D2"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="乐曲搜索" android:textColor="#212121" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="全库秒搜" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                <TextView android:id="@+id/tv_recent_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="随机成绩盲盒 (点击查看乐曲详情)" android:textColor="#616161" android:textSize="12sp" android:textStyle="bold"/>
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:background="#F0F0F0"/>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical">
+                    <androidx.cardview.widget.CardView android:layout_width="68dp" android:layout_height="68dp" app:cardCornerRadius="10dp" app:cardElevation="0dp"><ImageView android:id="@+id/iv_recent_jacket" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop"/></androidx.cardview.widget.CardView>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical">
+                        <TextView android:id="@+id/tv_recent_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="曲目正在同步..." android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
+                        <TextView android:id="@+id/tv_recent_achievement" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="---.--%" android:textColor="#1976D2" android:textSize="18sp" android:fontFamily="sans-serif-black"/>
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView android:id="@+id/btn_refresh" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_popup_sync" app:tint="#4CAF50"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="刷新数据" android:textColor="#212121" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="同步最新状态" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                    <TextView android:id="@+id/tv_recent_diff" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MASTER" android:textColor="#9E16C4" android:textSize="10sp" android:textStyle="bold" android:background="#F3E5F5" android:paddingHorizontal="6dp" android:paddingVertical="2dp"/>
+                </LinearLayout>
             </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                <androidx.cardview.widget.CardView android:id="@+id/btn_score_query" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#FF9800"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="成绩查询" android:textColor="#212121" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="开发中..." android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
+        <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="2">
+            <androidx.cardview.widget.CardView android:id="@+id/btn_song_search" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_search" app:tint="#1976D2"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="乐曲搜索" android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="全库秒搜" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView android:id="@+id/btn_refresh" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_popup_sync" app:tint="#4CAF50"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="刷新数据" android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="同步最新状态" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView android:id="@+id/btn_score_query" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#FF9800"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="成绩查询" android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="查看 B50 详情" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView android:id="@+id/btn_bind_df" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_share" app:tint="#9C27B0"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="绑定凭证" android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="管理 OAuth" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView android:id="@+id/btn_tools" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_manage" app:tint="#607D8B"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="实用工具" android:textColor="#1A1C1E" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="解析工具集" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView android:id="@+id/btn_logout_grid" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:layout_margin="6dp" app:cardCornerRadius="18dp" app:cardElevation="1dp"><LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="20dp"><ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="#E53935"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="退出账号" android:textColor="#E53935" android:textSize="15sp" android:textStyle="bold"/><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="清除本地缓存" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="2dp"/></LinearLayout></androidx.cardview.widget.CardView>
+        </GridLayout>
 
-                <androidx.cardview.widget.CardView android:id="@+id/btn_bind_df" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_share" app:tint="#9C27B0"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="绑定凭证" android:textColor="#212121" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="开发中..." android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
-
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                <androidx.cardview.widget.CardView android:id="@+id/btn_tools" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_manage" app:tint="#607D8B"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="实用工具" android:textColor="#212121" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="开发中..." android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <androidx.cardview.widget.CardView android:id="@+id/btn_logout_grid" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_margin="8dp" app:cardCornerRadius="16dp" app:cardElevation="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:paddingVertical="24dp">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="#E53935"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="退出账号" android:textColor="#E53935" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="清除本地缓存" android:textColor="#9E9E9E" android:textSize="11sp" android:layout_marginTop="4dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
-        </LinearLayout>
     </LinearLayout>
 </ScrollView>

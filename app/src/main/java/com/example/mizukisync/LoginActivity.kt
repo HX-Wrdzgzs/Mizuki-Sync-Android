@@ -3,6 +3,7 @@ package com.example.mizukisync
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,20 +13,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
 import okhttp3.Request
 import org.json.JSONObject
 
 class LoginActivity : AppCompatActivity() {
 
+    // 🌟 处理授权页返回的结果
     private val webViewLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val code = result.data?.getStringExtra("oauth_code")
             if (!code.isNullOrEmpty()) {
-                Toast.makeText(this, "拿到授权码！正在呼叫大后方...", Toast.LENGTH_SHORT).show()
-                exchangeCodeForToken(code)
+                exchangeCodeForToken(code) // 去换取正式 Token
             }
-        } else {
-            Toast.makeText(this, "授权已取消", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -33,9 +33,9 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
 
+        // 自动登录逻辑：如果有 Token 直接跳主页
         val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
-        val savedToken = prefs.getString("token", "")
-        if (!savedToken.isNullOrEmpty()) {
+        if (!prefs.getString("token", "").isNullOrEmpty()) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
@@ -43,58 +43,55 @@ class LoginActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_login)
 
-        val loginBtn = findViewById<View>(R.id.btn_login)
-        if (loginBtn != null) {
-            loginBtn.setOnClickListener {
-                val intent = Intent(this, WebViewActivity::class.java)
-                webViewLauncher.launch(intent)
-            }
-        } else {
-            Toast.makeText(this, "警告：找不到 ID 为 btn_login 的控件", Toast.LENGTH_LONG).show()
+        findViewById<View>(R.id.btn_login).setOnClickListener {
+            // 启动网页授权
+            webViewLauncher.launch(Intent(this, WebViewActivity::class.java))
         }
     }
 
     private fun exchangeCodeForToken(code: String) {
-        val client = UnsafeOkHttpClient.getClient()
+        val client = UnsafeOkHttpClient.getUnsafeOkHttpClient()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = "https://api.mizuki.top/api/oauth/token?code=$code"
-                val request = Request.Builder().url(url).build()
+                // 🌟 按照 LXNS 文档构造 POST 请求体
+                val formBody = FormBody.Builder()
+                    .add("grant_type", "authorization_code")
+                    .add("client_id", "c9dc866a-1d49-4159-beb0-b711f19055ac")
+                    .add("client_secret", "27IVVn6MgxtXxIN3gqpA8IbAKmix5AJl")
+                    .add("code", code)
+                    .add("redirect_uri", "https://api.mizuki.top/auth/callback")
+                    .build()
+
+                val request = Request.Builder()
+                    .url("https://maimai.lxns.net/api/v0/oauth/token")
+                    .post(formBody)
+                    .build()
+
                 val response = client.newCall(request).execute()
-                val jsonString = response.body()?.string() ?: ""
+                val bodyString = response.body?.string() ?: ""
 
                 withContext(Dispatchers.Main) {
-                    if (response.isSuccessful && jsonString.isNotEmpty()) {
-                        val json = JSONObject(jsonString)
+                    if (response.isSuccessful) {
+                        // LXNS 的响应数据在 data 字段下
+                        val jsonData = JSONObject(bodyString).getJSONObject("data")
+                        val token = jsonData.getString("access_token")
 
-                        // 🌟 修复点：兼容两种命名，并同时提取 15分钟短牌 和 30天长牌！
-                        val token = json.optString("token", json.optString("access_token", ""))
-                        val refreshToken = json.optString("refresh_token", "")
-                        val username = json.optString("username", "玩家")
+                        // 永久保存 Token
+                        getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit()
+                            .putString("token", token)
+                            .apply()
 
-                        if (token.isNotEmpty()) {
-                            val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
-                            prefs.edit()
-                                .putString("token", token)                 // 存入 15分钟 的门禁卡
-                                .putString("refresh_token", refreshToken)  // 🌟 救命稻草：把 30天 的 VIP 金牌死死攥在手里！
-                                .putString("username", username)
-                                .apply()
-
-                            Toast.makeText(this@LoginActivity, "欢迎回来，${username}！", Toast.LENGTH_LONG).show()
-                            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                            finish()
-                        } else {
-                            Toast.makeText(this@LoginActivity, "登录失败: 后端未返回 Token", Toast.LENGTH_SHORT).show()
-                        }
+                        Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        finish()
                     } else {
-                        Toast.makeText(this@LoginActivity, "后端大门紧闭: HTTP ${response.code()}", Toast.LENGTH_SHORT).show()
+                        Log.e("MizukiOAuth", "换码失败: $bodyString")
+                        Toast.makeText(this@LoginActivity, "换取令牌失败", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                Log.e("MizukiOAuth", "网络异常", e)
             }
         }
     }

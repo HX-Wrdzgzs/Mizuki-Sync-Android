@@ -3,192 +3,170 @@ package com.example.mizukisync
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.example.mizukisync.network.UnsafeOkHttpClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.Request
-import okhttp3.RequestBody
+import kotlinx.coroutines.*
+import okhttp3.*
 import org.json.JSONObject
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
+    private val DEV_API_KEY = "gAtzZcA6iXdihYhBtbw8VeXUtnFsMUI-Iwdyd-_ZvKM=" //
 
     private lateinit var ivAvatar: ImageView
     private lateinit var tvUsername: TextView
     private lateinit var tvTrophy: TextView
-    private lateinit var tvDan: TextView
-    private lateinit var tvClass: TextView
-    private lateinit var tvStar: TextView
-    private lateinit var tvFriendCode: TextView
     private lateinit var tvRating: TextView
+    private lateinit var ivRecentJacket: ImageView
+    private lateinit var tvRecentTitle: TextView
+    private lateinit var tvRecentAchievement: TextView
+    private lateinit var tvRecentDiff: TextView
 
-    private lateinit var ivBgPlate: ImageView
-    private lateinit var ivFrame: ImageView
-
-    private val client by lazy { UnsafeOkHttpClient.getClient() }
+    private val client by lazy { UnsafeOkHttpClient.getUnsafeOkHttpClient() }
+    private var currentFriendCode: String = ""
+    private var randomSongId: Int = 0 // 🌟 用于点击跳转
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // 1. 控件绑定
         ivAvatar = findViewById(R.id.iv_avatar)
         tvUsername = findViewById(R.id.tv_username)
         tvTrophy = findViewById(R.id.tv_trophy)
-        tvDan = findViewById(R.id.tv_dan)
-        tvClass = findViewById(R.id.tv_class)
-        tvStar = findViewById(R.id.tv_star)
-        tvFriendCode = findViewById(R.id.tv_friend_code)
         tvRating = findViewById(R.id.tv_rating)
+        ivRecentJacket = findViewById(R.id.iv_recent_jacket)
+        tvRecentTitle = findViewById(R.id.tv_recent_title)
+        tvRecentAchievement = findViewById(R.id.tv_recent_achievement)
+        tvRecentDiff = findViewById(R.id.tv_recent_diff)
 
-        ivBgPlate = findViewById(R.id.iv_bg_plate)
-        ivFrame = findViewById(R.id.iv_frame)
+        tvTrophy.isSelected = true
 
-        setupGridButtons()
-        fetchUserProfile()
-    }
+        // 🌟 2. 绑定 6 个核心按钮点击事件
+        findViewById<View>(R.id.btn_song_search).setOnClickListener { startActivity(Intent(this, SongSearchActivity::class.java)) }
 
-    private fun setupGridButtons() {
-        findViewById<View>(R.id.btn_song_search).setOnClickListener {
-            startActivity(Intent(this, SongSearchActivity::class.java))
-        }
         findViewById<View>(R.id.btn_refresh).setOnClickListener {
-            fetchUserProfile()
+            Toast.makeText(this, "正在向落雪同步并抽取随机成绩...", Toast.LENGTH_SHORT).show()
+            syncWithLXNS()
         }
-        findViewById<View>(R.id.btn_logout_grid).setOnClickListener {
-            logout()
+
+        findViewById<View>(R.id.btn_score_query).setOnClickListener { startActivity(Intent(this, B50Activity::class.java)) }
+        findViewById<View>(R.id.btn_bind_df).setOnClickListener { startActivity(Intent(this, WebViewActivity::class.java)) }
+        findViewById<View>(R.id.btn_tools).setOnClickListener { Toast.makeText(this, "实用工具模块开发中...", Toast.LENGTH_SHORT).show() }
+        findViewById<View>(R.id.btn_logout_grid).setOnClickListener { performLogout() }
+
+        // 🌟 3. 核心功能：点击随机成绩卡片进入详情
+        findViewById<View>(R.id.card_recent).setOnClickListener {
+            if (randomSongId != 0) {
+                val intent = Intent(this, SongDetailActivity::class.java)
+                intent.putExtra("song_id", randomSongId)
+                startActivity(intent)
+            } else {
+                Toast.makeText(this, "请先刷新数据以获取随机曲目", Toast.LENGTH_SHORT).show()
+            }
         }
-        findViewById<View>(R.id.btn_score_query).setOnClickListener {
-            Toast.makeText(this, "成绩查询功能开发中...", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.btn_bind_df).setOnClickListener {
-            Toast.makeText(this, "绑定功能开发中...", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.btn_tools).setOnClickListener {
-            Toast.makeText(this, "工具箱开发中...", Toast.LENGTH_SHORT).show()
-        }
+
+        loadCachedData()
+        syncWithLXNS()
     }
 
-    private fun fetchUserProfile() {
+    private fun loadCachedData() {
         val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
-        // 🌟 核心修复：统一使用 "token" 这个钥匙来开箱！
-        val token = prefs.getString("token", "") ?: ""
+        val cache = prefs.getString("user_profile_cache", "") ?: ""
+        if (cache.isNotEmpty()) try { updateUI(JSONObject(cache)) } catch (e: Exception) {}
+    }
 
-        if (token.isEmpty()) {
-            Toast.makeText(this, "提示：尚未绑定 Token，请先登录！", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        Toast.makeText(this, "正在同步玩家数据...", Toast.LENGTH_SHORT).show()
+    private fun syncWithLXNS() {
+        val token = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).getString("token", "") ?: ""
+        if (token.isEmpty()) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val request = Request.Builder()
+                // 第一步：向后端请求好友码
+                val resp = client.newCall(Request.Builder()
                     .url("https://api.mizuki.top/api/user/profile")
-                    .addHeader("Authorization", "Bearer $token")
-                    .build()
+                    .addHeader("Authorization", "Bearer $token").build()).execute()
 
-                val response = client.newCall(request).execute()
-                val responseData = response.body()?.string()
-
-                if (response.isSuccessful && responseData != null) {
-                    val json = JSONObject(responseData)
-                    withContext(Dispatchers.Main) { updateUI(json) }
-
-                } else if (response.code() == 401) {
-                    // 抓到 401 过期信号，立刻启动无感续命！
-                    doSilentRefresh()
-
-                } else {
+                val body = resp.body?.string() ?: ""
+                if (resp.isSuccessful) {
+                    getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit().putString("user_profile_cache", body).apply()
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "获取数据失败: HTTP ${response.code()}", Toast.LENGTH_SHORT).show()
+                        val json = JSONObject(body)
+                        updateUI(json)
+                        // 第二步：根据好友码去落雪抓历史数据
+                        if (currentFriendCode.isNotEmpty()) fetchRandomHistoryScore(currentFriendCode)
                     }
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
+            } catch (e: Exception) { Log.e("MizukiSync", "Sync Error", e) }
         }
     }
 
-    // 🌟 终极自动续命引擎
-    private suspend fun doSilentRefresh() {
-        val prefs = getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE)
-        val refreshToken = prefs.getString("refresh_token", "") ?: ""
+    private fun fetchRandomHistoryScore(fCode: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val request = Request.Builder()
+                    .url("https://maimai.lxns.net/api/v0/maimai/player/$fCode/score/history")
+                    .addHeader("Authorization", DEV_API_KEY)
+                    .build()
 
-        if (refreshToken.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "身份凭证丢失，请重新登录", Toast.LENGTH_LONG).show()
-                logout()
-            }
-            return
-        }
-
-        try {
-            // 构建一个空请求体的 POST 请求
-            val emptyBody = RequestBody.create(null, ByteArray(0))
-            val request = Request.Builder()
-                .url("https://api.mizuki.top/api/oauth/refresh?refresh_token=$refreshToken")
-                .post(emptyBody)
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseData = response.body()?.string()
-
-            if (response.isSuccessful && responseData != null) {
-                val json = JSONObject(responseData)
-
-                val newToken = json.optString("token", "")
-                val newRefresh = json.optString("refresh_token", "")
-
-                prefs.edit()
-                    // 🌟 核心修复：续命成功后，保存的新钥匙也要叫 "token"！
-                    .putString("token", newToken)
-                    .putString("refresh_token", if (newRefresh.isNotEmpty()) newRefresh else refreshToken)
-                    .apply()
-
-                withContext(Dispatchers.Main) {
-                    updateUI(json)
-                    Toast.makeText(this@MainActivity, "✨ 登录已过期，但已为您在后台自动续签！", Toast.LENGTH_SHORT).show()
+                val resp = client.newCall(request).execute()
+                val body = resp.body?.string() ?: ""
+                if (resp.isSuccessful) {
+                    val root = JSONObject(body)
+                    val dataArray = root.optJSONArray("data")
+                    if (dataArray != null && dataArray.length() > 0) {
+                        // 🌟 随机算法：抽签
+                        val randomIndex = Random.nextInt(dataArray.length())
+                        val randomScore = dataArray.getJSONObject(randomIndex)
+                        withContext(Dispatchers.Main) {
+                            updateRecentUI(randomScore)
+                            Toast.makeText(this@MainActivity, "成功获取随机成绩并同步状态", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "长期未活跃，身份已彻底过期，请重新授权", Toast.LENGTH_LONG).show()
-                    logout()
-                }
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "静默刷新网络异常: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
     private fun updateUI(data: JSONObject) {
-        tvUsername.text = data.optString("username", "Unknown")
-        tvRating.text = data.optInt("maimai_rating", 0).toString()
-        tvFriendCode.text = "ID: ${data.optString("friend_code", "------")}"
-        tvTrophy.text = data.optString("trophy", "初出茅庐")
-        tvDan.text = data.optString("dan", "初学者")
-        tvClass.text = data.optString("class_rank", "B5")
-        tvStar.text = "★×${data.optInt("star", 0)}"
+        tvUsername.text = data.optString("username", data.optString("name", "Unknown"))
+        tvRating.text = data.optInt("maimai_rating", data.optInt("rating", 0)).toString()
+        tvTrophy.text = data.optString("trophy", data.optString("title", "落雪查分器用户"))
+        currentFriendCode = data.optString("friend_code", data.optString("code", ""))
+        findViewById<TextView>(R.id.tv_friend_code).text = "ID: $currentFriendCode"
+        findViewById<TextView>(R.id.tv_star).text = "★×${data.optInt("star", 0)}"
 
-        val iconUrl = data.optString("icon_url", "")
-        if (iconUrl.isNotEmpty()) {
-            Glide.with(this).load(iconUrl).into(ivAvatar)
+        val icon = data.optString("icon_url", "")
+        if (icon.isNotEmpty()) Glide.with(this).load(icon).into(ivAvatar)
+    }
+
+    private fun updateRecentUI(score: JSONObject) {
+        val song = score.optJSONObject("song")
+        tvRecentTitle.text = song?.optString("title") ?: score.optString("song_name", "未知曲目")
+        tvRecentAchievement.text = "${String.format("%.4f", score.optDouble("achievement", 0.0))}%"
+
+        val diffNum = score.optInt("difficulty", 3)
+        val diffNames = arrayOf("Basic", "Advanced", "Expert", "Master", "Re:Master")
+        tvRecentDiff.text = diffNames.getOrElse(diffNum) { "MASTER" }.uppercase()
+
+        // 🌟 记录 ID 用于跳转详情页
+        randomSongId = score.optInt("song_id", song?.optInt("id") ?: 0)
+
+        if (randomSongId != 0) {
+            val jacketUrl = "https://maimai.lxns.net/api/v0/maimai/song/$randomSongId/jacket"
+            Glide.with(this).load(jacketUrl).into(ivRecentJacket)
         }
     }
 
-    private fun logout() {
+    private fun performLogout() {
         getSharedPreferences("MizukiPrefs", Context.MODE_PRIVATE).edit().clear().apply()
-        Toast.makeText(this, "已退出当前账号", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "账号已退出，本地缓存已清除", Toast.LENGTH_SHORT).show()
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
     }

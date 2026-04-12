@@ -1,219 +1,221 @@
 package com.example.mizukisync
 
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import android.widget.*
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners
-import com.bumptech.glide.request.RequestOptions
 import com.example.mizukisync.network.UnsafeOkHttpClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import okhttp3.Request
 import org.json.JSONObject
+import java.io.File
 
 class SongSearchActivity : AppCompatActivity() {
 
-    private lateinit var rvSongList: RecyclerView
-    private lateinit var etSearchKeyword: EditText
-
-    private val client by lazy { UnsafeOkHttpClient.getClient() }
+    private lateinit var rvSongs: RecyclerView
+    private lateinit var etSearch: EditText
+    private val client by lazy { UnsafeOkHttpClient.getUnsafeOkHttpClient() }
     private val songAdapter = SongAdapter()
+    private var allSongsList = mutableListOf<JSONObject>()
+    private val cacheFile by lazy { File(filesDir, "song_database.json") }
 
-    // 记录三大筛选条件
-    private var currentLevelFilter = ""
-    private var currentVersionFilter = ""
-    private var currentCategoryFilter = ""
+    // 筛选状态存储
+    private var filterMinConst = 0.0
+    private var filterMaxConst = 20.0
+    private var filterVersion: String? = null
+    private var filterCategory: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_song_search)
 
-        rvSongList = findViewById(R.id.rv_song_list)
-        etSearchKeyword = findViewById(R.id.et_search_keyword)
+        rvSongs = findViewById(R.id.rv_songs)
+        etSearch = findViewById(R.id.et_search)
+        rvSongs.layoutManager = LinearLayoutManager(this)
+        rvSongs.adapter = songAdapter
 
-        rvSongList.layoutManager = LinearLayoutManager(this)
-        rvSongList.adapter = songAdapter
+        // 🌟 修复：绑定三个筛选按钮的点击事件
+        findViewById<View>(R.id.btn_filter_level).setOnClickListener { showLevelFilterDialog() }
+        findViewById<View>(R.id.btn_filter_version).setOnClickListener { showListFilterDialog("版本", "version") }
+        findViewById<View>(R.id.btn_filter_type).setOnClickListener { showListFilterDialog("类别", "genre") }
 
-        // 🌟 1. 定数筛选
-        findViewById<View>(R.id.btn_filter_level)?.setOnClickListener {
-            val levels = arrayOf("全部定数", "11", "11+", "12", "12+", "13", "13+", "14", "14+", "15")
-            AlertDialog.Builder(this).setTitle("筛选谱面定数").setItems(levels) { _, which ->
-                currentLevelFilter = if (which == 0) "" else levels[which]
-                performSearch(etSearchKeyword.text.toString().trim())
-            }.show()
-        }
+        etSearch.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) { applyAllFilters() }
+            override fun beforeTextChanged(s: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(s: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+        })
 
-        // 🌟 2. 版本筛选
-        findViewById<View>(R.id.btn_filter_version)?.setOnClickListener {
-            val versions = arrayOf("全部版本", "maimai", "GreeN", "ORANGE", "PiNK", "MURASAKi", "MiLK", "FiNALE", "でらっくす", "Splash", "UNiVERSE", "FESTiVAL", "BUDDiES", "PRiSM")
-            AlertDialog.Builder(this).setTitle("筛选初出版本").setItems(versions) { _, which ->
-                currentVersionFilter = if (which == 0) "" else versions[which]
-                performSearch(etSearchKeyword.text.toString().trim())
-            }.show()
-        }
-
-        // 🌟 3. 类别筛选
-        findViewById<View>(R.id.btn_filter_category)?.setOnClickListener {
-            val categories = arrayOf("全部类别", "POPS & アニメ", "niconico & ボーカロイド", "東方Project", "ゲーム & バラエティ", "maimai", "オンゲキ & CHUNITHM")
-            AlertDialog.Builder(this).setTitle("筛选乐曲类别").setItems(categories) { _, which ->
-                currentCategoryFilter = if (which == 0) "" else categories[which]
-                performSearch(etSearchKeyword.text.toString().trim())
-            }.show()
-        }
-
-        // 监听回车搜索
-        etSearchKeyword.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                performSearch(etSearchKeyword.text.toString().trim())
-                true
-            } else false
-        }
-
-        performSearch("")
+        initSongDatabase()
     }
 
-    private fun performSearch(keyword: String) {
-        Toast.makeText(this, "正在检索后方数据库...", Toast.LENGTH_SHORT).show()
-
+    private fun initSongDatabase() {
         CoroutineScope(Dispatchers.IO).launch {
+            if (cacheFile.exists()) parseAndShow(cacheFile.readText())
             try {
-                // 🌟 核心救命代码：在所有请求的末尾强行焊死 notes=true！逼迫服务器交出物量数据！
-                val url = if (keyword.isNotEmpty()) {
-                    if (keyword.all { it.isDigit() }) "https://api.mizuki.top/api/songs/search?keyword=$keyword&id=$keyword&notes=true"
-                    else "https://api.mizuki.top/api/songs/search?keyword=$keyword&notes=true"
-                } else "https://api.mizuki.top/api/songs/search?limit=150&notes=true"
-
-                val request = Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                val jsonString = response.body()?.string() ?: ""
-
-                if (response.isSuccessful && jsonString.isNotEmpty()) {
-                    val jsonObject = JSONObject(jsonString)
-                    if (jsonObject.optBoolean("success", false)) {
-                        val dataArray = jsonObject.optJSONArray("data")
-                        val songList = mutableListOf<JSONObject>()
-
-                        if (dataArray != null) {
-                            for (i in 0 until dataArray.length()) {
-                                val song = dataArray.getJSONObject(i)
-                                val songStr = song.toString()
-
-                                // 前端多重过滤
-                                if (currentLevelFilter.isNotEmpty()) {
-                                    var hasLevel = false
-                                    val diffs = song.optJSONObject("difficulties")
-                                    val dx = diffs?.optJSONArray("dx")
-                                    val std = diffs?.optJSONArray("standard")
-                                    if (dx != null) { for (j in 0 until dx.length()) if (dx.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true }
-                                    if (std != null) { for (j in 0 until std.length()) if (std.getJSONObject(j).optString("level") == currentLevelFilter) hasLevel = true }
-                                    if (!hasLevel) continue
-                                }
-
-                                if (currentVersionFilter.isNotEmpty() && !songStr.contains(currentVersionFilter, ignoreCase = true)) continue
-                                if (currentCategoryFilter.isNotEmpty() && !songStr.contains(currentCategoryFilter, ignoreCase = true)) continue
-
-                                songList.add(song)
-                            }
-                        }
-
-                        withContext(Dispatchers.Main) {
-                            songAdapter.updateData(songList)
-                            if (songList.isEmpty()) Toast.makeText(this@SongSearchActivity, "没有找到符合条件的乐曲", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                // 向 api.mizuki.top 获取最新全量曲库
+                val url = "https://api.mizuki.top/api/songs/search?limit=9999"
+                val resp = client.newCall(Request.Builder().url(url).build()).execute()
+                val body = resp.body?.string() ?: ""
+                if (resp.isSuccessful && body.isNotEmpty()) {
+                    cacheFile.writeText(body)
+                    parseAndShow(body)
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@SongSearchActivity, "网络异常: ${e.message}", Toast.LENGTH_SHORT).show() }
-            }
+            } catch (e: Exception) { Log.e("MizukiSync", "Update failed", e) }
         }
     }
 
-    inner class SongAdapter : RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
-        private var songs = listOf<JSONObject>()
+    private suspend fun parseAndShow(json: String) {
+        try {
+            val root = JSONObject(json)
+            val dataArray = root.optJSONArray("data") ?: return
+            val tempList = mutableListOf<JSONObject>()
+            for (i in 0 until dataArray.length()) tempList.add(dataArray.getJSONObject(i))
+            withContext(Dispatchers.Main) {
+                allSongsList = tempList
+                applyAllFilters()
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 
-        fun updateData(newSongs: List<JSONObject>) {
-            songs = newSongs
-            notifyDataSetChanged()
+    // 🌟 定数筛选弹窗
+    private fun showLevelFilterDialog() {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_filter_level, null)
+        val dialog = AlertDialog.Builder(this).setView(v).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val etMin = v.findViewById<EditText>(R.id.et_min_const)
+        val etMax = v.findViewById<EditText>(R.id.et_max_const)
+        if (filterMinConst > 0.0) etMin.setText(filterMinConst.toString())
+        if (filterMaxConst < 20.0) etMax.setText(filterMaxConst.toString())
+
+        v.findViewById<View>(R.id.btn_filter_reset).setOnClickListener {
+            filterMinConst = 0.0; filterMaxConst = 20.0; applyAllFilters(); dialog.dismiss()
+        }
+        v.findViewById<View>(R.id.btn_filter_confirm).setOnClickListener {
+            filterMinConst = etMin.text.toString().toDoubleOrNull() ?: 0.0
+            filterMaxConst = etMax.text.toString().toDoubleOrNull() ?: 20.0
+            applyAllFilters(); dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    // 🌟 修复：版本/类别筛选弹窗
+    private fun showListFilterDialog(title: String, field: String) {
+        val items = allSongsList.map { it.optString(field) }.distinct().filter { it.isNotEmpty() }.sorted().toMutableList()
+        items.add(0, "全部$title")
+
+        val listView = ListView(this).apply {
+            adapter = ArrayAdapter(this@SongSearchActivity, android.R.layout.simple_list_item_1, items)
+            divider = ColorDrawable(Color.parseColor("#E2E8F0"))
+            dividerHeight = 1
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_song_card, parent, false)
-            return SongViewHolder(view)
+        // 🌟 修复：修正 radius 赋值和 dpToPx 调用
+        val container = CardView(this).apply {
+            radius = 24.dpToPx().toFloat() // 核心修复：Int 上调用 dpToPx
+            setCardBackgroundColor(Color.WHITE)
+            cardElevation = 0f
+
+            val inner = LinearLayout(this@SongSearchActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(24.dpToPx(), 24.dpToPx(), 24.dpToPx(), 24.dpToPx())
+                addView(TextView(this@SongSearchActivity).apply {
+                    text = "选择$title"
+                    textSize = 18f
+                    setTextColor(Color.parseColor("#1E293B"))
+                    typeface = Typeface.DEFAULT_BOLD
+                })
+                val lp = LinearLayout.LayoutParams(-1, 800)
+                lp.topMargin = 16.dpToPx()
+                addView(listView, lp)
+            }
+            addView(inner)
         }
 
-        override fun getItemCount(): Int = songs.size
+        val dialog = AlertDialog.Builder(this).setView(container).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
-            val song = songs[position]
+        listView.setOnItemClickListener { _, _, position, _ ->
+            if (position == 0) {
+                if (field == "version") filterVersion = null else filterCategory = null
+            } else {
+                val selected = items[position]
+                if (field == "version") filterVersion = selected else filterCategory = selected
+            }
+            applyAllFilters()
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
 
-            holder.tvTitle.text = song.optString("title", "未知曲目")
-            val artist = song.optString("artist", "未知曲师")
-            val bpm = song.optInt("bpm", 0)
-            holder.tvArtistBpm.text = "$artist / BPM: $bpm"
-
-            val jacketUrl = song.optString("jacket_url", "")
-            Glide.with(holder.itemView.context).load(jacketUrl).apply(RequestOptions.bitmapTransform(RoundedCorners(16))).into(holder.ivJacket)
-
-            holder.llDifficulties.removeAllViews()
-            val diffObj = song.optJSONObject("difficulties")
-            var diffArray = diffObj?.optJSONArray("dx")
-            if (diffArray == null || diffArray.length() == 0) diffArray = diffObj?.optJSONArray("standard")
-
-            if (diffArray != null) {
-                val colors = arrayOf("#4CAF50", "#FBC02D", "#F44336", "#9C27B0", "#E1BEE7")
-                for (i in 0 until diffArray.length()) {
-                    val level = diffArray.getJSONObject(i).optString("level", "?")
-                    val chip = TextView(holder.itemView.context).apply {
-                        text = level
-                        textSize = 12f
-                        setTextColor(if (i == 4) Color.parseColor("#6A1B9A") else Color.WHITE)
-                        setPadding(16, 4, 16, 4)
-                        background = GradientDrawable().apply {
-                            shape = GradientDrawable.RECTANGLE
-                            cornerRadius = 20f
-                            setColor(Color.parseColor(if (i < colors.size) colors[i] else "#9E9E9E"))
-                        }
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 12, 0) }
-                    }
-                    holder.llDifficulties.addView(chip)
+    private fun applyAllFilters() {
+        val keyword = etSearch.text.toString().lowercase()
+        val filtered = allSongsList.filter { s ->
+            val kMatch = keyword.isEmpty() || s.optString("title").lowercase().contains(keyword) || s.optString("id").contains(keyword)
+            val vMatch = filterVersion == null || s.optString("version") == filterVersion
+            val cMatch = filterCategory == null || s.optString("genre") == filterCategory
+            val dList = s.optJSONObject("difficulties")?.optJSONArray("standard")
+            var dMatch = false
+            if (dList != null) {
+                for (i in 0 until dList.length()) {
+                    val ds = dList.getJSONObject(i).optDouble("level_value", 0.0)
+                    if (ds in filterMinConst..filterMaxConst) { dMatch = true; break }
                 }
             }
+            kMatch && vMatch && cMatch && (filterMinConst == 0.0 && filterMaxConst == 20.0 || dMatch)
+        }
+        songAdapter.updateList(filtered)
+    }
 
-            // 🌟 终极防闪退跳跃：安全捕捉
-            holder.itemView.setOnClickListener {
-                try {
-                    val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
-                    // 因为我们在这里加上了 notes=true，传给下一页的 song.toString() 里就会携带物量数据！
-                    intent.putExtra("song_data", song.toString())
-                    startActivity(intent)
-                } catch (e: Throwable) {
-                    Toast.makeText(this@SongSearchActivity, "跳转失败，请检查清单文件", Toast.LENGTH_SHORT).show()
-                }
+    // 🌟 核心：工具函数
+    private fun Int.dpToPx() = (this * resources.displayMetrics.density).toInt()
+
+    inner class SongAdapter : RecyclerView.Adapter<SongAdapter.VH>() {
+        private var data = listOf<JSONObject>()
+        fun updateList(newList: List<JSONObject>) { data = newList; notifyDataSetChanged() }
+        override fun onCreateViewHolder(p: ViewGroup, t: Int) = VH(LayoutInflater.from(p.context).inflate(R.layout.item_song_card, p, false))
+        override fun getItemCount() = data.size
+        override fun onBindViewHolder(h: VH, p: Int) {
+            val s = data[p]
+            val songId = s.optInt("id")
+            h.title.text = s.optString("title")
+
+            // 🌟 修复：正确显示艺术家和 BPM
+            val artist = s.optString("artist", "Unknown")
+            val bpm = s.optString("bpm", "---")
+            h.info.text = "$artist / BPM: $bpm"
+
+            val jacketUrl = "https://assets2.lxns.net/maimai/jacket/${songId}.png"
+            Glide.with(h.itemView.context).load(jacketUrl).placeholder(android.R.drawable.ic_menu_report_image).into(h.iv)
+
+            h.itemView.setOnClickListener {
+                val intent = Intent(this@SongSearchActivity, SongDetailActivity::class.java)
+                intent.putExtra("song_id", songId)
+                startActivity(intent)
             }
         }
 
-        inner class SongViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            val ivJacket: ImageView = itemView.findViewById(R.id.iv_song_jacket)
-            val tvTitle: TextView = itemView.findViewById(R.id.tv_song_title)
-            val tvArtistBpm: TextView = itemView.findViewById(R.id.tv_song_artist_bpm)
-            val llDifficulties: LinearLayout = itemView.findViewById(R.id.ll_difficulties)
+        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val iv: ImageView = v.findViewById(R.id.iv_song_jacket)
+            val title: TextView = v.findViewById(R.id.tv_song_title)
+            val info: TextView = v.findViewById(R.id.tv_song_artist) // 对应 item_song_card.xml
         }
     }
 }
