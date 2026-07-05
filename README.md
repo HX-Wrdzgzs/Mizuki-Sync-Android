@@ -1,91 +1,114 @@
-# MizukiSync (舞萌同步)
+# MizukiSync（舞萌同步）
 
 ![Android](https://img.shields.io/badge/Android-Kotlin-3DDC84?style=flat-square&logo=android)
 ![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)
-![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)
 
-MizukiSync 是一款专为舞萌 DX (maimai DX) 玩家设计的 Android 第三方客户端。通过对接 [落雪查分器 (LXNS) API](https://lxns.net/)，为玩家提供流畅且安全的成绩查询与曲库管理体验。
+MizukiSync 是一款面向舞萌 DX（maimai DX）玩家的 Android 第三方客户端。项目通过对接落雪查分器（LXNS）相关数据能力，为玩家提供成绩查询、曲库检索、筛选与同步体验。
 
-本项目采用**前后端分离架构**，将核心的数据清洗、版本去重以及涉密的开发者 API 密钥全部下沉至私有服务端，确保 Android 客户端极致轻量且绝对安全。
+本项目采用前后端分离架构：Android 客户端负责界面展示、本地缓存与用户交互；后端负责数据清洗、版本去重、接口转发与涉密配置托管，避免在客户端内暴露开发者 API Key。
 
-## ✨ 核心特性
+## 核心特性
 
-- **📱 现代化交互 UI**
-  - 六宫格清晰布局，精心设计的圆角卡片与列表。
-  - 玩家名片全景展示（Rating、段位、阶级、底板、头像、称号跑马灯）。
-- **🎵 极速曲库与智能筛选**
-  - 支持 **定数范围 (精确到小数)**、**游戏版本**、**乐曲分类** 的三重联合筛选。
-  - 彻底告别硬编码：服务端定时拉取官方数据，客户端动态生成筛选字典，新版本自动适配，无惧“未知版本”或幽灵子版本号。
-- **📊 成绩同步与追踪**
-  - 一键同步最新玩家状态，主页直观展示最新游玩成绩、单曲达成率与评级。
-- **🛡️ 极致的安全架构**
-  - 客户端完全脱敏：不包含任何第三方开发者 API Key，防止逆向抓包。
-  - 服务端数据清洗：后台守护进程（Daemon）每日自动拉取落雪数据，剔除冗余前缀（如 `maimai DX `）、清理隐形字符，为客户端提供开箱即用的规范 JSON 接口。
+### 现代化 Android 客户端
 
-## 🏗️ 架构说明
+- 六宫格主页布局，使用圆角卡片与列表组织功能入口。
+- 玩家名片展示 Rating、段位、阶级、底板、头像与称号等信息。
+- 通过本地缓存降低重复请求成本，提升移动端体验。
 
-本项目分为两个主要部分：
+### 曲库与筛选
 
-1. **Android 客户端 (`/app`)**
-   - 语言：Kotlin
-   - 核心组件：`RecyclerView`, `CardView`, `Coroutines` (协程异步处理)
-   - 网络与图片：`OkHttp`, `Glide`
-   - 特点：仅负责 UI 渲染、本地 `SharedPreferences` 缓存管理及对端请求，无任何重度数据处理逻辑。
+- 支持按定数范围、游戏版本、乐曲分类等条件筛选曲目。
+- 后端定时拉取并清洗曲库数据，减少客户端硬编码。
+- 对曲名、版本前缀、隐形字符等数据问题进行规范化处理。
 
-2. **Python 服务端 (`/backend`)**
-   - 框架：FastAPI, Uvicorn
-   - 核心文件：
-     - `main.py`: 提供 OAuth 认证、公共数据分发、单曲详情中转及玩家最新成绩获取接口。
-     - `lxns_update.py`: 独立守护进程，每 24 小时从落雪 API 全量同步曲目、别名、字典，并执行数据去重与清洗。
+### 成绩同步
 
-## 🚀 部署与运行
+- 支持同步玩家最新状态。
+- 主页展示最近游玩记录、单曲达成率与评级。
+- 后端负责统一处理第三方 API 调用与数据格式转换。
 
-### 服务端部署 (Backend)
+### 安全架构
 
-建议使用 Linux 服务器进行部署：
+- 客户端不内置第三方开发者密钥。
+- 服务端统一保存 LXNS 相关配置与私密凭证。
+- 敏感接口建议部署在可信服务端，并配合访问控制、日志审计和速率限制。
 
-1. 安装依赖：
-   ```bash
-   pip install fastapi uvicorn httpx requests
+## 架构说明
 
+```text
+Android Client
+  ├─ Kotlin UI
+  ├─ OkHttp / Glide
+  └─ SharedPreferences cache
+        ↓
+FastAPI Backend
+  ├─ OAuth / API relay
+  ├─ LXNS data cleanup
+  ├─ song database cache
+  └─ scheduled updater
+        ↓
+LXNS / external data sources
 ```
 
-2. 修改 `main.py` 和 `lxns_update.py` 中的配置项：
-* 填入你申请的落雪 `LX_CLIENT_ID`, `LX_CLIENT_SECRET`, `DEV_API_KEY`。
-* 确认数据缓存目录 `SONG_DB_PATH` 的读写权限。
+## 项目结构
 
+```text
+app/                 Android 客户端
+backend/             Python / FastAPI 服务端
+  main.py            API 服务入口
+  lxns_update.py     曲库与字典同步脚本
+```
 
-3. 启动后台清洗守护进程：
+## 部署与运行
+
+### 服务端部署
+
+建议使用 Linux 服务器部署后端。
+
+安装依赖：
+
+```bash
+pip install fastapi uvicorn httpx requests
+```
+
+配置 `main.py` 与 `lxns_update.py` 中的服务端参数：
+
+- `LX_CLIENT_ID`
+- `LX_CLIENT_SECRET`
+- `DEV_API_KEY`
+- `SONG_DB_PATH`
+
+启动曲库清洗守护进程：
+
 ```bash
 nohup python3 lxns_update.py > update.log 2>&1 &
-
 ```
 
+启动 FastAPI 服务：
 
-4. 启动 FastAPI 服务：
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000
-
 ```
 
-
-
-### 客户端编译 (Android)
+### Android 客户端编译
 
 1. 使用 Android Studio 打开项目。
-2. 确保项目级别的 `build.gradle` 已配置 Kotlin 插件。
-3. 全局搜索 `https://api.mizuki.top`，将其替换为你自己部署的后端域名或 IP。
-4. Sync Project & Build APK。
+2. 确认 Gradle 与 Kotlin 插件配置正常。
+3. 全局搜索默认后端地址，例如 `https://api.mizuki.top`，替换为你自己的后端域名或 IP。
+4. Sync Project。
+5. Build APK。
 
-## 📜 声明与致谢
+## 注意事项
 
-* 本项目的数据均来源于 [落雪查分器 (LXNS)](https://lxns.net/)，感谢落雪团队提供稳定强大的 API 支持。
-* 游戏资产（曲绘、图标等）版权归原游戏开发商 (SEGA) 所有，本项目仅作学习交流及个人数据统计使用。
+- 请勿将真实 API Key、Client Secret 或数据库凭证提交到仓库。
+- 建议将生产配置改为环境变量或独立配置文件，并将其加入 `.gitignore`。
+- 曲库与成绩数据来源于第三方服务，接口格式和可用性可能随上游变化。
+- 游戏资产版权归原游戏开发商及相关权利方所有，本项目仅用于学习交流和个人数据统计。
 
-## 📄 License
+## 致谢
 
-[MIT License](https://www.google.com/search?q=LICENSE)
+感谢落雪查分器（LXNS）提供稳定的数据能力。
 
-```
+## License
 
-```
+当前仓库尚未提供独立 `LICENSE` 文件。如需正式开源分发，建议补充明确许可证文本。
